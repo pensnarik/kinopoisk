@@ -1,4 +1,4 @@
-# -*- encdoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 
 unhtml_map = {
     '&quot;': '"', '&laquo;': '"', '&raquo;': '"', '&#34;': '"', '&#8220;': '"',
