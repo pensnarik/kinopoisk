@@ -49,6 +49,8 @@ class Film(object):
         for item in elem.xpath('.//a'):
             href = item.get('href')
             m = re.search('/name/(\d+)/$', href)
+            if m is None:
+                continue
             id = int(m.group(1))
             name = item.text_content()
             self.persons.append({'id': id, 'name': name, 'role': role})
