@@ -56,10 +56,16 @@ class App():
                 return None
 
     def get_from_cache(self, url):
-        f = open(self.get_cached_filename(url), 'rt')
-        data = f.read()
-        f.close()
-        return data
+        logger.info(self.get_cached_filename(url))
+        if sys.version_info[0] >= 3:
+            f = open(self.get_cached_filename(url), 'rt')
+            data = f.read()
+            f.close()
+            return data
+        else:
+            with codecs.open(self.get_cached_filename(url), 'r', encoding='utf-8') as f:
+                data = f.read()
+            return data
 
     def write_to_cache(self, url, data):
         if sys.version_info[0] >= 3:
