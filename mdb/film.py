@@ -17,6 +17,8 @@ class Film(object):
         self.countries = list()
         self.slogan = None
         self.persons = list()
+        self.length = None
+        self.year = None
         self.parse()
 
     def parse_title(self):
@@ -64,7 +66,11 @@ class Film(object):
             return None
 
     def parse_year(self, elem):
-        self.year = int(elem.text_content())
+        m = re.search('(\d{4})', elem.text_content().strip())
+        if m is not None:
+            self.year = int(m.group(1))
+        else:
+            return None
 
     def save_persons(self):
         for person in self.persons:
@@ -91,7 +97,7 @@ class Film(object):
         self.save_movie()
 
     def parse_info(self):
-        for line in self.html.xpath('//table[@class="info"]//tr'):
+        for line in self.html.xpath('//table[contains(@class, "info")]//tr'):
             info_type = line.xpath('.//td[@class="type"]')[0]
             info_type_str = info_type.text_content()
             print('Type: %s' % info_type_str)
