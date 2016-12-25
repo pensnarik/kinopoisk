@@ -25,6 +25,7 @@ class Film(object):
         self.length = None
         self.year = None
         self.cast = list()
+        self.ratings = list()
         self.parse()
 
     def parse_title(self):
@@ -161,11 +162,52 @@ class Film(object):
 
                 self.cast.append(person)
 
+    def get_ratings(self):
+        kinopoisk = dict()
+
+        kinopoisk_rating = self.html.xpath('//span[@class="rating_ball"]')
+        kinopoisk_count = self.html.xpath('//span[@class="ratingCount"]')
+
+        if kinopoisk_rating is not None and len(kinopoisk_rating) > 0:
+            kinopoisk['rating_system'] = 'kinopoisk'
+            kinopoisk['rating'] = float(kinopoisk_rating[0].text_content())
+            kinopoisk['vote_count'] = int(kinopoisk_count[0].text_content().replace('&nbsp;', ''))
+
+            self.ratings.append(kinopoisk)
+
+        imdb = dict()
+
+        for div in self.html.xpath('//div[@id="block_rating"]//div'):
+            if div.text_content().startswith('IMDb:'):
+                imdb['rating_system'] = 'imdb'
+                m = re.search('^IMDb: ([\d\.]+) \(([^)]+)\)', div.text_content())
+                imdb['rating'] = float(m.group(1))
+                imdb['vote_count'] = int(m.group(2).replace(' ', ''))
+
+                self.ratings.append(imdb)
+                break
+
+    def save_ratings(self):
+        for rating in self.ratings:
+            id = db.query_value('select id from mdb.movie_rating where movie_id = %s and '
+                                'rating_system = %s', [self.id, rating['rating_system']])
+            if id is None:
+                db.execute('insert into mdb.movie_rating (movie_id, rating_system, rating, '
+                           'vote_count) values (%s, %s, %s, %s)',
+                           [self.id, rating['rating_system'], rating['rating'],
+                            rating['vote_count']])
+            else:
+                db.execute('update mdb.movie_rating set rating = %s, vote_count = %s '
+                           'where movie_id = %s and rating_system = %s',
+                           [rating['rating'], rating['vote_count'], self.id,
+                            rating['rating_system']])
+
     def save(self):
         self.save_persons()
         self.save_countries()
         self.save_movie()
         self.save_cast()
+        self.save_ratings()
 
     def parse_info(self):
         for line in self.html.xpath('//table[contains(@class, "info")]//tr'):
@@ -194,4 +236,5 @@ class Film(object):
         self.parse_title()
         self.parse_info()
         self.get_cast()
-        print(self.cast)
+        self.get_ratings()
+

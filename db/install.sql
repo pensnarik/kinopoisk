@@ -116,5 +116,18 @@ grant select, update, delete, insert on table mdb.person, mdb.person_in_movie to
 
 grant select, usage on sequence mdb.person_in_movie_id_seq to mdb;
 
+create table mdb.movie_rating
+(
+    id              serial primary key,
+    movie_id        integer not null references mdb.movie(id),
+    rating_system   varchar(100) not null,
+    rating          numeric not null,
+    vote_count      integer
+);
+
+grant insert, update, delete, select on mdb.movie_rating to mdb;
+grant select, usage on sequence mdb.movie_rating_id_seq to mdb;
+
+create unique index on mdb.movie_rating(movie_id, rating_system);
 
 end;
