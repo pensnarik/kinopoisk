@@ -29,6 +29,7 @@ class Film(object):
         self.genres = list()
         self.rating_kinopoisk = None
         self.rating_imdb = None
+        self.rating_critics = None
         self.age_restriction = None
         self.parse()
 
@@ -121,21 +122,23 @@ class Film(object):
             db.execute('insert into mdb.movie(id, title, alternative_title, year, slogan, '
                        'length, genres, rating_kinopoisk, rating_imdb, '
                        'directors, scenario, operators, composers, producers, arts, editors, '
-                       'age_restriction) '
-                       'values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
+                       'age_restriction, countries, rating_critics) '
+                       'values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
                        [self.id, self.title, self.alternative_title, self.year,
                         self.slogan, self.length, self.get_array_of_id(self.genres),
                         self.rating_kinopoisk, self.rating_imdb,
                         self.get_persons_by_role('director'), self.get_persons_by_role('writer'),
                         self.get_persons_by_role('operator'), self.get_persons_by_role('composer'),
                         self.get_persons_by_role('producer'), self.get_persons_by_role('design'),
-                        self.get_persons_by_role('editor'), self.age_restriction])
+                        self.get_persons_by_role('editor'), self.age_restriction,
+                        self.rating_critics,
+                        self.get_array_of_id(self.countries)])
         else:
             db.execute('update mdb.movie set title = %s, alternative_title = %s, year = %s, '
                        'slogan = %s, length = %s, genres = %s, rating_kinopoisk = %s, '
                        'rating_imdb = %s, directors = %s, scenario = %s, '
                        'operators = %s, composers = %s, producers = %s, arts = %s, '
-                       'editors = %s, age_restriction = %s '
+                       'editors = %s, age_restriction = %s, countries = %s, rating_critics = %s '
                        'where id = %s',
                        [self.title, self.alternative_title, self.year, self.slogan,
                         self.length, self.get_array_of_id(self.genres),
@@ -144,6 +147,7 @@ class Film(object):
                         self.get_persons_by_role('operator'), self.get_persons_by_role('composer'),
                         self.get_persons_by_role('producer'), self.get_persons_by_role('design'),
                         self.get_persons_by_role('editor'), self.age_restriction,
+                        self.get_array_of_id(self.countries), self.rating_critics,
                         self.id])
 
     def get_cast(self):
@@ -210,6 +214,17 @@ class Film(object):
                 self.ratings.append(imdb)
                 self.rating_imdb = imdb['rating']
                 break
+
+        critics_rating = dict()
+        critics = self.html.xpath('//div[@class="criticsRating"]//div[@class="star"]')
+
+        if critics is not None and len(critics) > 0:
+            critics_rating['rating_system'] = 'critics'
+            critics_rating['rating'] = float(critics[0].text_content())
+            critics_rating['vote_count'] = None
+
+            self.ratings.append(critics_rating)
+            self.rating_critics = critics_rating['rating']
 
     def save_ratings(self):
         for rating in self.ratings:
