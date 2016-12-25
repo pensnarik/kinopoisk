@@ -44,7 +44,9 @@ class App():
     def get_pages_count(self, year):
         page = Downloader.get(self.get_url_for_year(year))
         html = fromstring(page)
-        a = html.xpath('//ul[@class="list"]//li[@class="arr"][last()]//a')[0]
+        a = html.xpath('//ul[@class="list"]//li[@class="arr"][last()]//a')
+        if a is None or len(a) == 0:
+            return 1
         m = re.search('/page/(\d+)/', a.get('href'))
         return int(m.group(1))
 
