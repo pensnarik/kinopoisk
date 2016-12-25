@@ -47,7 +47,7 @@ class App():
         a = html.xpath('//ul[@class="list"]//li[@class="arr"][last()]//a')
         if a is None or len(a) == 0:
             return 1
-        m = re.search('/page/(\d+)/', a.get('href'))
+        m = re.search('/page/(\d+)/', a[0].get('href'))
         return int(m.group(1))
 
     def get_url_for_year(self, year, page=1):
