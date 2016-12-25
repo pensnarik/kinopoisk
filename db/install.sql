@@ -84,6 +84,8 @@ create table mdb.genre
     name            text not null unique
 );
 
+grant insert, update, select on mdb.genre to mdb;
+
 create table mdb.movie_keyword
 (
     id              serial primary key,

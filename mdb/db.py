@@ -8,7 +8,7 @@ import logging
 from mdb.singleton import Singleton
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
 

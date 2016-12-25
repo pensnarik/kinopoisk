@@ -26,6 +26,9 @@ class Film(object):
         self.year = None
         self.cast = list()
         self.ratings = list()
+        self.genres = list()
+        self.rating_kinopoisk = None
+        self.rating_imdb = None
         self.parse()
 
     def parse_title(self):
@@ -109,13 +112,38 @@ class Film(object):
         for country in self.countries:
             self.save_country(country['id'], country['name'])
 
+    def get_array_of_id(self, for_list):
+        return [int(i['id']) for i in for_list]
+
     def save_movie(self):
         id = db.query_value('select id from mdb.movie where id = %s', [self.id])
         if id is None:
-            db.execute('insert into mdb.movie(id, title, alternative_title, year, slogan, length) '
-                       'values (%s, %s, %s, %s, %s, %s)',
+            db.execute('insert into mdb.movie(id, title, alternative_title, year, slogan, '
+                       'length, genres, rating_kinopoisk, rating_imdb, '
+                       'directors, scenario, operators, composers, producers, arts, editors) '
+                       'values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
                        [self.id, self.title, self.alternative_title, self.year,
-                        self.slogan, self.length])
+                        self.slogan, self.length, self.get_array_of_id(self.genres),
+                        self.rating_kinopoisk, self.rating_imdb,
+                        self.get_persons_by_role('director'), self.get_persons_by_role('writer'),
+                        self.get_persons_by_role('operator'), self.get_persons_by_role('composer'),
+                        self.get_persons_by_role('producer'), self.get_persons_by_role('design'),
+                        self.get_persons_by_role('editor')])
+        else:
+            db.execute('update mdb.movie set title = %s, alternative_title = %s, year = %s, '
+                       'slogan = %s, length = %s, genres = %s, rating_kinopoisk = %s, '
+                       'rating_imdb = %s, directors = %s, scenario = %s, '
+                       'operators = %s, composers = %s, producers = %s, arts = %s, '
+                       'editors = %s '
+                       'where id = %s',
+                       [self.title, self.alternative_title, self.year, self.slogan,
+                        self.length, self.get_array_of_id(self.genres),
+                        self.rating_kinopoisk, self.rating_imdb,
+                        self.get_persons_by_role('director'), self.get_persons_by_role('writer'),
+                        self.get_persons_by_role('operator'), self.get_persons_by_role('composer'),
+                        self.get_persons_by_role('producer'), self.get_persons_by_role('design'),
+                        self.get_persons_by_role('editor'),
+                        self.id])
 
     def get_cast(self):
         page = Downloader.get('http://www.kinopoisk.ru/film/%s/cast/' % self.id)
@@ -127,11 +155,9 @@ class Film(object):
             role = anchor.get('name')
             if role is None:
                 continue
-            logger.warning(role)
             div = anchor.getnext()
 
             while div is not None:
-                logger.warning('%s %s' % (div.tag, div.get('class')))
                 div = div.getnext()
                 if div is None or div.tag != 'div':
                     break
@@ -144,18 +170,14 @@ class Film(object):
                 alternative_name = div.xpath('.//div[@class="info"]//div[@class="name"]//span[@class="gray"]')
                 commentary = div.xpath('.//div[@class="info"]//div[@class="role"]')
 
-                logger.warning(name.text_content())
-
                 person['id'] = self.extract_person_id_from_url(name.get('href'))
                 person['name'] = name.text_content()
 
                 if alternative_name is not None:
-                    logger.warning(alternative_name[0].text_content())
                     person['alternative_name'] = alternative_name[0].text_content()
 
                 if commentary is not None:
                     commentary_str = commentary[0].text_content().replace('... ', '').strip()
-                    logger.warning(commentary_str)
                     person['commentary'] = commentary_str if commentary_str != '' else None
 
                 person['role'] = role
@@ -171,9 +193,9 @@ class Film(object):
         if kinopoisk_rating is not None and len(kinopoisk_rating) > 0:
             kinopoisk['rating_system'] = 'kinopoisk'
             kinopoisk['rating'] = float(kinopoisk_rating[0].text_content())
-            kinopoisk['vote_count'] = int(kinopoisk_count[0].text_content().replace('&nbsp;', ''))
-
+            kinopoisk['vote_count'] = int(re.sub('\s+', '', kinopoisk_count[0].text_content().replace('&nbsp;', ''), re.UNICODE))
             self.ratings.append(kinopoisk)
+            self.rating_kinopoisk = kinopoisk['rating']
 
         imdb = dict()
 
@@ -185,6 +207,7 @@ class Film(object):
                 imdb['vote_count'] = int(m.group(2).replace(' ', ''))
 
                 self.ratings.append(imdb)
+                self.rating_imdb = imdb['rating']
                 break
 
     def save_ratings(self):
@@ -202,9 +225,33 @@ class Film(object):
                            [rating['rating'], rating['vote_count'], self.id,
                             rating['rating_system']])
 
+    def extract_genre_id_from_url(self, url):
+        print(url)
+        m = re.search('/(\d+)/$', url)
+        return int(m.group(1))
+
+    def get_genres(self, second_column):
+        for a in second_column.xpath('.//a'):
+            if a.get('href').startswith(u'/lists/m_act'):
+                id = self.extract_genre_id_from_url(a.get('href'))
+                name = a.text_content()
+                self.genres.append({'id': id, 'name': name})
+        logger.info(self.genres)
+
+    def save_genres(self):
+        for genre in self.genres:
+            id = db.query_value('select id from mdb.genre where id = %s', [genre['id']])
+            if id is None:
+                db.execute('insert into mdb.genre(id, name) values (%s, %s)',
+                           [genre['id'], genre['name']])
+
+    def get_persons_by_role(self, role):
+        return [int(i['id']) for i in self.cast if i['role'] == role]
+
     def save(self):
         self.save_persons()
         self.save_countries()
+        self.save_genres()
         self.save_movie()
         self.save_cast()
         self.save_ratings()
@@ -231,6 +278,8 @@ class Film(object):
                 self.length = self.parse_length(second_column)
             elif info_type_str == u'год':
                 self.parse_year(second_column)
+            elif info_type_str == u'жанр':
+                self.get_genres(second_column)
 
     def parse(self):
         self.parse_title()
