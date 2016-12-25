@@ -5,6 +5,7 @@ import os
 import re
 import sys
 import logging
+import argparse
 
 from lxml.html import fromstring
 
@@ -24,6 +25,10 @@ class App():
     base = 'https://www.kinopoisk.ru'
 
     def __init__(self):
+        parser = argparse.ArgumentParser(description='Generate SQL statemets to create '
+                                                     'attribute tables.')
+        parser.add_argument('--year', type=str, help='Year to process', required=True)
+        self.args = parser.parse_args()
         # Initialization of the cache
         if not os.path.exists(Downloader.get_cache_path()):
             os.mkdir(Downloader.get_cache_path())
@@ -80,7 +85,7 @@ class App():
                 f.save()
 
     def run(self):
-        self.get_year(1975)
+        self.get_year(self.args.year)
 
 
 if __name__ == '__main__':
