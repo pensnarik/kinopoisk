@@ -29,6 +29,7 @@ class Film(object):
         self.genres = list()
         self.rating_kinopoisk = None
         self.rating_imdb = None
+        self.age_restriction = None
         self.parse()
 
     def parse_title(self):
@@ -119,21 +120,22 @@ class Film(object):
         if id is None:
             db.execute('insert into mdb.movie(id, title, alternative_title, year, slogan, '
                        'length, genres, rating_kinopoisk, rating_imdb, '
-                       'directors, scenario, operators, composers, producers, arts, editors) '
-                       'values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
+                       'directors, scenario, operators, composers, producers, arts, editors, '
+                       'age_restriction) '
+                       'values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
                        [self.id, self.title, self.alternative_title, self.year,
                         self.slogan, self.length, self.get_array_of_id(self.genres),
                         self.rating_kinopoisk, self.rating_imdb,
                         self.get_persons_by_role('director'), self.get_persons_by_role('writer'),
                         self.get_persons_by_role('operator'), self.get_persons_by_role('composer'),
                         self.get_persons_by_role('producer'), self.get_persons_by_role('design'),
-                        self.get_persons_by_role('editor')])
+                        self.get_persons_by_role('editor'), self.age_restriction])
         else:
             db.execute('update mdb.movie set title = %s, alternative_title = %s, year = %s, '
                        'slogan = %s, length = %s, genres = %s, rating_kinopoisk = %s, '
                        'rating_imdb = %s, directors = %s, scenario = %s, '
                        'operators = %s, composers = %s, producers = %s, arts = %s, '
-                       'editors = %s '
+                       'editors = %s, age_restriction = %s '
                        'where id = %s',
                        [self.title, self.alternative_title, self.year, self.slogan,
                         self.length, self.get_array_of_id(self.genres),
@@ -141,7 +143,7 @@ class Film(object):
                         self.get_persons_by_role('director'), self.get_persons_by_role('writer'),
                         self.get_persons_by_role('operator'), self.get_persons_by_role('composer'),
                         self.get_persons_by_role('producer'), self.get_persons_by_role('design'),
-                        self.get_persons_by_role('editor'),
+                        self.get_persons_by_role('editor'), self.age_restriction,
                         self.id])
 
     def get_cast(self):
@@ -246,6 +248,9 @@ class Film(object):
     def get_persons_by_role(self, role):
         return [int(i['id']) for i in self.cast if i['role'] == role]
 
+    def get_age_restriction(self, elem):
+        self.age_restriction = elem.text_content().strip()
+
     def save(self):
         self.save_persons()
         self.save_countries()
@@ -276,6 +281,8 @@ class Film(object):
                 self.parse_year(second_column)
             elif info_type_str == u'жанр':
                 self.get_genres(second_column)
+            elif info_type_str == u'возраст':
+                self.get_age_restriction(second_column)
 
     def parse(self):
         self.parse_title()

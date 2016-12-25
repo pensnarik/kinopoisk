@@ -33,7 +33,7 @@ create table mdb.movie
     editors         integer[],
     genres          integer[],
     length          integer,
-    age_restriction smallint,
+    age_restriction text,
     rating_imdb     numeric,
     rating_kinopoisk numeric,
     rating_critics  numeric,
