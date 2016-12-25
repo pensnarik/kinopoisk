@@ -2,11 +2,13 @@
 
 import sys
 import os
+import time
 import hashlib
 import logging
 import requests
 import codecs
 import __main__
+from random import randint
 
 import mdb.helpers
 
@@ -30,7 +32,9 @@ class Downloader():
 
             while tries_left > 0:
                 try:
-                    logger.info('Tries left: %s' % tries_left)
+                    sleep_time = randint(1, 20)
+                    logger.info('Sleeping %s, tries left: %s' % (sleep_time, tries_left))
+                    time.sleep(sleep_time)
                     response = requests.get(url, timeout=5, headers=mdb.helpers.headers)
                     break
                 except (ConnectionError, OSError):
