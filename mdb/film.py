@@ -131,8 +131,7 @@ class Film(object):
                         self.get_persons_by_role('operator'), self.get_persons_by_role('composer'),
                         self.get_persons_by_role('producer'), self.get_persons_by_role('design'),
                         self.get_persons_by_role('editor'), self.age_restriction,
-                        self.rating_critics,
-                        self.get_array_of_id(self.countries)])
+                        self.get_array_of_id(self.countries), self.rating_critics])
         else:
             db.execute('update mdb.movie set title = %s, alternative_title = %s, year = %s, '
                        'slogan = %s, length = %s, genres = %s, rating_kinopoisk = %s, '
