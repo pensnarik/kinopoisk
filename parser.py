@@ -40,7 +40,6 @@ class App():
         page = Downloader.get(self.get_url_for_year(year))
         html = fromstring(page)
         a = html.xpath('//ul[@class="list"]//li[@class="arr"][last()]//a')[0]
-        print(a.get('href'))
         m = re.search('/page/(\d+)/', a.get('href'))
         return int(m.group(1))
 
@@ -69,10 +68,7 @@ class App():
         """
         page = Downloader.get(self.get_film_url(film_id))
         film = Film(film_id, page)
-        print(film.title, film.alternative_title)
-        print('Slogan: %s' % film.slogan)
-        print('Persons: %s' % film.persons)
-        print('Length: %s min' % film.length)
+        logger.warning('%s (%s)' % (film.title, film.alternative_title,))
         return film
 
     def get_year(self, year):

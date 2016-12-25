@@ -72,7 +72,6 @@ class Film(object):
             self.persons.append({'id': id, 'name': name, 'role': role})
 
     def parse_length(self, elem):
-        print(elem.text_content())
         m = re.search(u'(\d+) мин', elem.text_content(), re.UNICODE)
         if m is not None:
             return int(m.group(1))
@@ -149,7 +148,7 @@ class Film(object):
         page = Downloader.get('http://www.kinopoisk.ru/film/%s/cast/' % self.id)
         html = fromstring(page)
 
-        self.cast.clear()
+        self.cast = list()
 
         for anchor in html.xpath('//a'):
             role = anchor.get('name')
@@ -226,7 +225,6 @@ class Film(object):
                             rating['rating_system']])
 
     def extract_genre_id_from_url(self, url):
-        print(url)
         m = re.search('/(\d+)/$', url)
         return int(m.group(1))
 
@@ -260,13 +258,11 @@ class Film(object):
         for line in self.html.xpath('//table[contains(@class, "info")]//tr'):
             info_type = line.xpath('.//td[@class="type"]')[0]
             info_type_str = info_type.text_content()
-            print('Type: %s' % info_type_str)
 
             second_column = line.xpath('.//td[2]')[0]
 
             if info_type_str == u'страна':
                 for country in self.parse_countries(second_column):
-                    print(country)
                     self.countries.append(country)
             elif info_type_str == u'слоган':
                 self.slogan = self.parse_slogan(second_column)
