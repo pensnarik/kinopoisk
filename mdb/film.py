@@ -1,12 +1,17 @@
 #! -*- encoding: utf-8 -*-
 
 import re
+import logging
 
 from lxml.html import fromstring
 from mdb.helpers import unhtml
 from mdb.db import Database
+from mdb.http import Downloader
 
 db = Database.Instance()
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class Film(object):
@@ -19,6 +24,7 @@ class Film(object):
         self.persons = list()
         self.length = None
         self.year = None
+        self.cast = list()
         self.parse()
 
     def parse_title(self):
@@ -30,6 +36,10 @@ class Film(object):
 
     def extract_country_id_from_url(self, url):
         m = re.search('/(\d+)/$', url)
+        return int(m.group(1))
+
+    def extract_person_id_from_url(self, url):
+        m = re.search('/name/(\d+)/$', url)
         return int(m.group(1))
 
     def save_country(self, id, name):
@@ -72,12 +82,27 @@ class Film(object):
         else:
             return None
 
-    def save_persons(self):
+    def save_persons_in_movie(self):
+        # Depricated
+        db.execute('delete from mdb.person_in_movie where movie_id = %s', [self.id])
         for person in self.persons:
+            db.execute('insert into mdb.person_in_movie(movie_id, person_id, role) '
+                       'values (%s, %s, %s)', [self.id, person['id'], person['role']])
+
+    def save_persons(self):
+        for person in self.cast:
             id = db.query_value('select id from mdb.person where id = %s', [person['id']])
             if id is None:
-                db.execute('insert into mdb.person (id, name) values (%s, %s)', [person['id'],
-                                                                                 person['name']])
+                db.execute('insert into mdb.person (id, name, alternative_name) '
+                           'values (%s, %s, %s)', [person['id'], person['name'],
+                                                   person['alternative_name']])
+
+    def save_cast(self):
+        db.execute('delete from mdb.person_in_movie where movie_id = %s', [self.id])
+        for person in self.cast:
+            db.execute('insert into mdb.person_in_movie(movie_id, person_id, role, commentary) '
+                       'values (%s, %s, %s, %s)', [self.id, person['id'], person['role'],
+                                                   person['commentary']])
 
     def save_countries(self):
         for country in self.countries:
@@ -91,10 +116,56 @@ class Film(object):
                        [self.id, self.title, self.alternative_title, self.year,
                         self.slogan, self.length])
 
+    def get_cast(self):
+        page = Downloader.get('http://www.kinopoisk.ru/film/%s/cast/' % self.id)
+        html = fromstring(page)
+
+        self.cast.clear()
+
+        for anchor in html.xpath('//a'):
+            role = anchor.get('name')
+            if role is None:
+                continue
+            logger.warning(role)
+            div = anchor.getnext()
+
+            while div is not None:
+                logger.warning('%s %s' % (div.tag, div.get('class')))
+                div = div.getnext()
+                if div is None or div.tag != 'div':
+                    break
+                if 'dub' not in div.get('class').split():
+                    continue
+
+                person = dict()
+
+                name = div.xpath('.//div[@class="info"]//div[@class="name"]//a')[0]
+                alternative_name = div.xpath('.//div[@class="info"]//div[@class="name"]//span[@class="gray"]')
+                commentary = div.xpath('.//div[@class="info"]//div[@class="role"]')
+
+                logger.warning(name.text_content())
+
+                person['id'] = self.extract_person_id_from_url(name.get('href'))
+                person['name'] = name.text_content()
+
+                if alternative_name is not None:
+                    logger.warning(alternative_name[0].text_content())
+                    person['alternative_name'] = alternative_name[0].text_content()
+
+                if commentary is not None:
+                    commentary_str = commentary[0].text_content().replace('... ', '').strip()
+                    logger.warning(commentary_str)
+                    person['commentary'] = commentary_str if commentary_str != '' else None
+
+                person['role'] = role
+
+                self.cast.append(person)
+
     def save(self):
         self.save_persons()
         self.save_countries()
         self.save_movie()
+        self.save_cast()
 
     def parse_info(self):
         for line in self.html.xpath('//table[contains(@class, "info")]//tr'):
@@ -122,3 +193,5 @@ class Film(object):
     def parse(self):
         self.parse_title()
         self.parse_info()
+        self.get_cast()
+        print(self.cast)

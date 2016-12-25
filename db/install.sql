@@ -96,7 +96,8 @@ create unique index on mdb.movie_keyword (movie_id, keyword);
 create table mdb.person
 (
     id              serial primary key,
-    name            text not null
+    name            text not null,
+    alternative_name text
 );
 
 create table mdb.person_in_movie
@@ -104,12 +105,16 @@ create table mdb.person_in_movie
     id              serial primary key,
     movie_id        integer not null references mdb.movie(id),
     person_id       integer not null references mdb.person(id),
-    role            text not null
+    role            text not null,
+    commentary      text
 );
 
 create index on mdb.person_in_movie(movie_id);
 create index on mdb.person_in_movie(person_id);
 
 grant select, update, delete, insert on table mdb.person, mdb.person_in_movie to mdb;
+
+grant select, usage on sequence mdb.person_in_movie_id_seq to mdb;
+
 
 end;
