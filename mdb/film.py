@@ -215,7 +215,7 @@ class Film(object):
                 break
 
         critics_rating = dict()
-        critics = self.html.xpath('//div[@class="criticsRating"]//div[@class="star"]')
+        critics = self.html.xpath('//div[contains(@class, "criticsRating")]//div[@class="star"]')
 
         if critics is not None and len(critics) > 0:
             critics_rating['rating_system'] = 'critics'
