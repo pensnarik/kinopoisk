@@ -192,7 +192,7 @@ class Film(object):
         if kinopoisk_rating is not None and len(kinopoisk_rating) > 0:
             kinopoisk['rating_system'] = 'kinopoisk'
             kinopoisk['rating'] = float(kinopoisk_rating[0].text_content())
-            kinopoisk['vote_count'] = int(re.sub('\s+', '', kinopoisk_count[0].text_content().replace('&nbsp;', ''), re.UNICODE))
+            kinopoisk['vote_count'] = int(re.sub('[^\d]', '', kinopoisk_count[0].text_content().replace('&nbsp;', ''), re.UNICODE))
             self.ratings.append(kinopoisk)
             self.rating_kinopoisk = kinopoisk['rating']
 
