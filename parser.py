@@ -29,7 +29,7 @@ class App():
     def __init__(self):
         parser = argparse.ArgumentParser(description='Generate SQL statemets to create '
                                                      'attribute tables.')
-        parser.add_argument('--year', type=str, help='Year to process', required=True)
+        parser.add_argument('--year', type=int, help='Year to process', required=True)
         self.args = parser.parse_args()
         # Initialization of the cache
         if not os.path.exists(Downloader.get_cache_path()):
@@ -44,16 +44,23 @@ class App():
         return
 
     def get_pages_count(self, year):
+        logger.info('Getting pages count for year %s' % year)
         page = Downloader.get(self.get_url_for_year(year))
         html = fromstring(page)
         a = html.xpath('//ul[@class="list"]//li[@class="arr"][last()]//a')
         if a is None or len(a) == 0:
-            return 1
-        m = re.search('/page/(\d+)/', a[0].get('href'))
-        pages_count = int(m.group(1))
+            pages_count = 1
+        else:
+            m = re.search('/page/(\d+)/', a[0].get('href'))
+            pages_count = int(m.group(1))
+
         h1 = html.xpath('//h1[@class="level2"]//span[@style="color: #777"]')
         if h1 is not None and len(h1) > 0:
             self.total_count = int(re.sub('[^\d]', '', h1[0].text_content()))
+        else:
+            raise Exception('Could not get total records count!')
+
+        logger.info('Got total_count = %s' % self.total_count)
         return pages_count
 
     def get_url_for_year(self, year, page=1):
@@ -101,8 +108,9 @@ class App():
                        [self.get_current_count(), self.total_count, self.args.year])
 
     def get_year(self, year):
+        logger.info('======= Processing year %s =======' % self.args.year)
         for page_number in range(1, self.get_pages_count(year) + 1):
-            print("Processing page %s" % page_number)
+            logger.info("Processing page %s" % page_number)
             for id, title, href in self.get_films_from_page(self.get_url_for_year(year, page_number)):
                 logger.info('%s | %s | %s' % (id, title, href,))
                 f = self.get_film(id)
@@ -110,7 +118,9 @@ class App():
                 self.update_stat()
 
     def run(self):
-        self.get_year(self.args.year)
+        while self.args.year < 2016:
+            self.get_year(self.args.year)
+            self.args.year = self.args.year + 1
 
 
 if __name__ == '__main__':
