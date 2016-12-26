@@ -6,6 +6,7 @@ import time
 import hashlib
 import logging
 import requests
+from requests.exceptions import ConnectionError
 import codecs
 import __main__
 from random import randint
@@ -27,7 +28,7 @@ class Downloader():
             return Downloader.get_from_cache(url)
         else:
             logger.info('Downloading %s' % url)
-            tries_left = 10
+            tries_left = 100
             response = None
 
             while tries_left > 0:
@@ -39,6 +40,7 @@ class Downloader():
                     break
                 except (ConnectionError, OSError):
                     tries_left = tries_left - 1
+                    time.sleep(100 * (10 - tries_left))
 
             if response.status_code == 200 and response is not None:
                 Downloader.write_to_cache(url, response.text)
