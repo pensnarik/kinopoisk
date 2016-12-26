@@ -4,9 +4,9 @@
 import os
 import re
 import sys
-import time
 import logging
 import argparse
+from socket import gethostname
 
 from lxml.html import fromstring
 
@@ -30,6 +30,8 @@ class App():
         parser = argparse.ArgumentParser(description='Generate SQL statemets to create '
                                                      'attribute tables.')
         parser.add_argument('--year', type=int, help='Year to process', required=True)
+        parser.add_argument('--hostname', type=str, help='Hostname', required=False,
+                            default=gethostname())
         self.args = parser.parse_args()
         # Initialization of the cache
         if not os.path.exists(Downloader.get_cache_path()):
@@ -98,14 +100,16 @@ class App():
     def update_stat(self):
         id = db.query_value('select id from mdb.stat where year = %s', [self.args.year])
         if id is None:
-            db.execute('insert into mdb.stat (year, done_count, total_count) '
-                       'values (%s, %s, %s)',
-                       [self.args.year, self.get_current_count(), self.total_count])
+            db.execute('insert into mdb.stat (year, done_count, total_count, hostname) '
+                       'values (%s, %s, %s, %s)',
+                       [self.args.year, self.get_current_count(), self.total_count,
+                        self.args.hostname])
         else:
-            db.execute('update mdb.stat set done_count = %s, total_count = %s, '
+            db.execute('update mdb.stat set done_count = %s, total_count = %s, hostname = %s, '
                        'last_update_time = current_timestamp '
                        'where year = %s',
-                       [self.get_current_count(), self.total_count, self.args.year])
+                       [self.get_current_count(), self.total_count, self.args.year,
+                        self.args.hostname])
 
     def get_year(self, year):
         logger.info('======= Processing year %s =======' % self.args.year)
