@@ -40,6 +40,8 @@ class Downloader():
                     break
                 except (ConnectionError, OSError):
                     tries_left = tries_left - 1
+                    logger.warning('Will sleep %s seconds due to connection error' %
+                                   100 * (10 - tries_left))
                     time.sleep(100 * (10 - tries_left))
 
             if response.status_code == 200 and response is not None:
