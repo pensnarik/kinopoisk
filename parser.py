@@ -24,6 +24,7 @@ db = Database.Instance()
 class App():
 
     base = 'https://www.kinopoisk.ru'
+    total_count = None
 
     def __init__(self):
         parser = argparse.ArgumentParser(description='Generate SQL statemets to create '
@@ -49,7 +50,11 @@ class App():
         if a is None or len(a) == 0:
             return 1
         m = re.search('/page/(\d+)/', a[0].get('href'))
-        return int(m.group(1))
+        pages_count = int(m.group(1))
+        h1 = html.xpath('//h1[@class="level2"]//span[@style="color: #777"]')
+        if h1 is not None and len(h1) > 0:
+            self.total_count = int(re.sub('[^\d]', '', h1[0].text_content()))
+        return pages_count
 
     def get_url_for_year(self, year, page=1):
         return '%s/lists/ord/name/m_act[year]/%s/m_act[all]/ok/page/%s/' % (self.base, year, page,)
@@ -77,7 +82,11 @@ class App():
         page = Downloader.get(self.get_film_url(film_id))
         film = Film(film_id, page)
         logger.warning('%s (%s) | %s' % (film.title, film.alternative_title, film.year,))
+        logger.warning('%s from %s' % (self.get_current_count(), self.total_count,))
         return film
+
+    def get_current_count(self):
+        return db.query_value('select count(*) from mdb.movie where year = %s' % self.args.year)
 
     def get_year(self, year):
         for page_number in range(1, self.get_pages_count(year) + 1):
