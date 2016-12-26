@@ -76,7 +76,7 @@ class App():
         """
         page = Downloader.get(self.get_film_url(film_id))
         film = Film(film_id, page)
-        logger.warning('%s (%s)' % (film.title, film.alternative_title,))
+        logger.warning('%s (%s) | %s' % (film.title, film.alternative_title, film.year,))
         return film
 
     def get_year(self, year):
