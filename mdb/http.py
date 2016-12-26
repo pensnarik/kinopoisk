@@ -68,6 +68,7 @@ class Downloader():
         else:
             with codecs.open(Downloader.get_cached_filename(url), 'w', encoding='utf-8') as f:
                 f.write(data)
+        logger.info('Saved to cache as %s' % Downloader.get_cached_filename(url))
 
     @staticmethod
     def get_cache_path():
