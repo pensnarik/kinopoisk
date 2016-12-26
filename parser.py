@@ -108,8 +108,8 @@ class App():
             db.execute('update mdb.stat set done_count = %s, total_count = %s, hostname = %s, '
                        'last_update_time = current_timestamp '
                        'where year = %s',
-                       [self.get_current_count(), self.total_count, self.args.year,
-                        self.args.hostname])
+                       [self.get_current_count(), self.total_count, self.args.hostname,
+                        self.args.year])
 
     def get_year(self, year):
         logger.info('======= Processing year %s =======' % self.args.year)
