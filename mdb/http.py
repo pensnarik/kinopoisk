@@ -17,6 +17,10 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
+class GetPageError(Exception):
+    pass
+
+
 class Downloader():
     """
     Реализует интерфейс для получения страниц сайта напрямую или через кеш
@@ -37,8 +41,10 @@ class Downloader():
                     logger.info('Sleeping %s, tries left: %s' % (sleep_time, tries_left))
                     time.sleep(sleep_time)
                     response = requests.get(url, timeout=5, headers=mdb.helpers.headers)
+                    if 'captchaimg' in response.text:
+                        raise GetPageError('Banned')
                     break
-                except (ConnectionError, OSError):
+                except (ConnectionError, OSError, GetPageError):
                     tries_left = tries_left - 1
                     logger.warning('Will sleep %s seconds due to connection error' %
                                    100 * (10 - tries_left))
