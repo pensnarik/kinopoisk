@@ -132,4 +132,16 @@ grant select, usage on sequence mdb.movie_rating_id_seq to mdb;
 
 create unique index on mdb.movie_rating(movie_id, rating_system);
 
+create table mdb.stat
+(
+    id              serial primary key,
+    year            integer not null unique,
+    done_count      integer not null default 0 check (done_count >= 0),
+    total_count     integer not null check (total_count >= 0),
+    last_update_time timestamptz(0) not null default now()
+);
+
+grant select, update, insert on mdb.stat to mdb;
+grant select, usage on sequence mdb.stat_id_seq to mdb;
+
 end;

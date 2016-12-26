@@ -88,6 +88,18 @@ class App():
     def get_current_count(self):
         return db.query_value('select count(*) from mdb.movie where year = %s' % self.args.year)
 
+    def update_stat(self):
+        id = db.query_value('select id from mdb.stat where year = %s', [self.args.year])
+        if id is None:
+            db.execute('insert into mdb.stat (year, done_count, total_count) '
+                       'values (%s, %s, %s)',
+                       [self.args.year, self.get_current_count(), self.total_count])
+        else:
+            db.execute('update mdb.stat set done_count = %s, total_count = %s, '
+                       'last_update_time = current_timestamp '
+                       'where year = %s',
+                       [self.get_current_count(), self.total_count, self.args.year])
+
     def get_year(self, year):
         for page_number in range(1, self.get_pages_count(year) + 1):
             print("Processing page %s" % page_number)
@@ -95,6 +107,7 @@ class App():
                 logger.info('%s | %s | %s' % (id, title, href,))
                 f = self.get_film(id)
                 f.save()
+                self.update_stat()
 
     def run(self):
         self.get_year(self.args.year)
