@@ -6,7 +6,7 @@ import time
 import hashlib
 import logging
 import requests
-from requests.exceptions import ConnectionError
+from requests.exceptions import ConnectionError, ReadTimeout
 import codecs
 import __main__
 from random import randint
@@ -44,7 +44,7 @@ class Downloader():
                     if 'captchaimg' in response.text:
                         raise GetPageError('Banned')
                     break
-                except (ConnectionError, OSError, GetPageError):
+                except (ConnectionError, OSError, GetPageError, ReadTimeout):
                     tries_left = tries_left - 1
                     logger.warning('Will sleep %s seconds due to connection error' %
                                    100 * (10 - tries_left))
