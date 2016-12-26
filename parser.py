@@ -4,6 +4,7 @@
 import os
 import re
 import sys
+import time
 import logging
 import argparse
 from socket import gethostname
@@ -88,8 +89,19 @@ class App():
         """
         Extracts all informarion about film
         """
-        page = Downloader.get(self.get_film_url(film_id))
-        film = Film(film_id, page)
+        tries = 10
+
+        while True:
+            try:
+                page = Downloader.get(self.get_film_url(film_id))
+                film = Film(film_id, page)
+                break
+            except TypeError:
+                tries = tries - 1
+                if tries == 0:
+                    raise Exception('Could not parse film')
+                time.sleep(100)
+
         logger.warning('%s (%s) | %s' % (film.title, film.alternative_title, film.year,))
         logger.warning('%s from %s' % (self.get_current_count(), self.total_count,))
         return film
