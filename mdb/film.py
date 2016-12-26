@@ -286,11 +286,14 @@ class Film(object):
         elif len(data) == 2:
             return {'precision': 'm',
                     'date': '%s-%.02d-01' % (data[1], month_mapping_m[data[0].lower()])}
+        elif len(data) == 1:
+            return {'precision': 'y',
+                    'date': '%s-01-01' % (data[0])}
 
     def get_premieres(self, elem):
         div = elem.xpath('.//div[@class="prem_ical"]')
         if div is not None and len(div) > 0:
-            date = self.get_premiere_date(div[0].get('data-ical-date'))
+            date = self.get_premiere_date(div[0].get('data-ical-date').strip())
             premiere = {'region': div[0].get('data-ical-type')}
             premiere.update(date)
             self.premieres.append(premiere)
@@ -310,8 +313,8 @@ class Film(object):
         self.save_persons()
         self.save_countries()
         self.save_genres()
-        self.save_premieres()
         self.save_movie()
+        self.save_premieres()
         self.save_cast()
         self.save_ratings()
 
