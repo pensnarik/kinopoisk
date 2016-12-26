@@ -37,6 +37,7 @@ create table mdb.movie
     rating_imdb     numeric,
     rating_kinopoisk numeric,
     rating_critics  numeric,
+    world_premiere  date,
     parse_date      timestamptz(0) not null default now()
 );
 
@@ -70,13 +71,17 @@ create table mdb.country_views
 create table mdb.premiere_date
 (
     id              serial primary key,
-    country_id      integer not null references mdb.country(id),
     movie_id        integer not null references mdb.movie(id),
+    region          varchar(100) not null,
     premiere_date   date,
     precision       date_precision not null default 'd',
-    viewers         integer,
     commentary      text
 );
+
+create unique index on mdb.premiere_date(movie_id, region);
+
+grant select, usage on sequence mdb.premiere_date_id_seq to mdb;
+grant select, insert, update on mdb.premiere_date to mdb;
 
 create table mdb.genre
 (

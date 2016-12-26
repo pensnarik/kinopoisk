@@ -31,7 +31,10 @@ class Film(object):
         self.rating_imdb = None
         self.rating_critics = None
         self.age_restriction = None
+        self.premieres = list()
+        self.world_premiere = None
         self.parse()
+        logger.info(self.premieres)
 
     def parse_title(self):
         h1 = self.html.xpath('//h1[@class="moviename-big"]')
@@ -122,8 +125,9 @@ class Film(object):
             db.execute('insert into mdb.movie(id, title, alternative_title, year, slogan, '
                        'length, genres, rating_kinopoisk, rating_imdb, '
                        'directors, scenario, operators, composers, producers, arts, editors, '
-                       'age_restriction, countries, rating_critics) '
-                       'values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
+                       'age_restriction, countries, rating_critics, world_premiere) '
+                       'values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, '
+                       '%s, %s, %s, %s)',
                        [self.id, self.title, self.alternative_title, self.year,
                         self.slogan, self.length, self.get_array_of_id(self.genres),
                         self.rating_kinopoisk, self.rating_imdb,
@@ -131,13 +135,15 @@ class Film(object):
                         self.get_persons_by_role('operator'), self.get_persons_by_role('composer'),
                         self.get_persons_by_role('producer'), self.get_persons_by_role('design'),
                         self.get_persons_by_role('editor'), self.age_restriction,
-                        self.get_array_of_id(self.countries), self.rating_critics])
+                        self.get_array_of_id(self.countries), self.rating_critics,
+                        self.world_premiere])
         else:
             db.execute('update mdb.movie set title = %s, alternative_title = %s, year = %s, '
                        'slogan = %s, length = %s, genres = %s, rating_kinopoisk = %s, '
                        'rating_imdb = %s, directors = %s, scenario = %s, '
                        'operators = %s, composers = %s, producers = %s, arts = %s, '
-                       'editors = %s, age_restriction = %s, countries = %s, rating_critics = %s '
+                       'editors = %s, age_restriction = %s, countries = %s, rating_critics = %s, '
+                       'world_premiere = %s '
                        'where id = %s',
                        [self.title, self.alternative_title, self.year, self.slogan,
                         self.length, self.get_array_of_id(self.genres),
@@ -147,6 +153,7 @@ class Film(object):
                         self.get_persons_by_role('producer'), self.get_persons_by_role('design'),
                         self.get_persons_by_role('editor'), self.age_restriction,
                         self.get_array_of_id(self.countries), self.rating_critics,
+                        self.world_premiere,
                         self.id])
 
     def get_cast(self):
@@ -265,10 +272,45 @@ class Film(object):
     def get_age_restriction(self, elem):
         self.age_restriction = elem.text_content().strip()
 
+    def get_premiere_date(self, date_as_russian_text):
+        month_mapping_d = {u'января': 1, u'февраля': 2, u'марта': 3, u'апреля': 4, u'мая': 5,
+                           u'июня': 6, u'июля': 7, u'августа': 8, u'сентября': 9, u'октября': 10,
+                           u'ноября': 11, u'декабря': 12}
+        month_mapping_m = {u'январь': 1, u'февраль': 2, u'март': 3, u'апрель': 4, u'май': 5, u'июнь': 6,
+                           u'июль': 7, u'август': 8, u'сентябрь': 9, u'октябрь': 10, u'ноябрь': 11,
+                           u'декабрь': 12}
+        data = date_as_russian_text.split(' ')
+        if len(data) == 3:
+            return {'precision': 'd',
+                    'date': '%s-%.02d-%.02d' % (data[2], month_mapping_d[data[1].lower()], int(data[0]))}
+        elif len(data) == 2:
+            return {'precision': 'm',
+                    'date': '%s-%.02d-01' % (data[1], month_mapping_m[data[0].lower()])}
+
+    def get_premieres(self, elem):
+        div = elem.xpath('.//div[@class="prem_ical"]')
+        if div is not None and len(div) > 0:
+            date = self.get_premiere_date(div[0].get('data-ical-date'))
+            premiere = {'region': div[0].get('data-ical-type')}
+            premiere.update(date)
+            self.premieres.append(premiere)
+            if premiere['region'] == 'world':
+                self.world_premiere = date['date']
+
+    def save_premieres(self):
+        for premiere in self.premieres:
+            id = db.query_value('select id from mdb.premiere_date where movie_id = %s and '
+                                'region = %s', [self.id, premiere['region']])
+            if id is None:
+                db.execute('insert into mdb.premiere_date (movie_id, region, premiere_date, '
+                           'precision) values (%s, %s, %s, %s)',
+                           [self.id, premiere['region'], premiere['date'], premiere['precision']])
+
     def save(self):
         self.save_persons()
         self.save_countries()
         self.save_genres()
+        self.save_premieres()
         self.save_movie()
         self.save_cast()
         self.save_ratings()
@@ -297,10 +339,13 @@ class Film(object):
                 self.get_genres(second_column)
             elif info_type_str == u'возраст':
                 self.get_age_restriction(second_column)
+            elif info_type_str.startswith(u'премьера'):
+                self.get_premieres(second_column)
 
     def parse(self):
         self.parse_title()
         self.parse_info()
         self.get_cast()
         self.get_ratings()
+
 
