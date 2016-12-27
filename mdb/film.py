@@ -284,6 +284,9 @@ class Film(object):
                            u'декабрь': 12}
         data = date_as_russian_text.split(' ')
         if len(data) == 3:
+            # Bug with https://www.kinopoisk.ru/film/224679/dates/
+            if data[0] == '0':
+                data[0] = '1'
             return {'precision': 'd',
                     'date': '%s-%.02d-%.02d' % (data[2], month_mapping_d[data[1].lower()], int(data[0]))}
         elif len(data) == 2:
