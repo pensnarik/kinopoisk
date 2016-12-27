@@ -365,17 +365,23 @@ class Film(object):
                 if title == group:
                     continue
                 next_tr = b.getparent().getparent().getnext().xpath('.//td')[0]
+                m = re.search('^([^\d]+)', next_tr.text_content().strip())
+                if m is not None:
+                    currency = m.group(1).strip()
+                else:
+                    currency = None
                 value = re.sub('[^\d]', '', next_tr.text_content().strip(), re.UNICODE)
-                logger.warning('"%s" : "%s"' % (title, value,))
+                logger.warning('"%s" : "%s" (%s)' % (title, value, currency,))
                 if value != '':
-                    self.boxes.append({'category': group, 'item': title, 'value': value})
+                    self.boxes.append({'category': group, 'item': title, 'value': value,
+                                       'currency': currency})
 
     def save_boxes(self):
         db.execute('delete from mdb.movie_boxes where movie_id = %s', [self.id])
         for box in self.boxes:
-            db.execute('insert into mdb.movie_boxes(movie_id, category, item, value) '
-                       'values (%s, %s, %s, %s)',
-                       [self.id, box['category'], box['item'], box['value']])
+            db.execute('insert into mdb.movie_boxes(movie_id, category, item, value, currency) '
+                       'values (%s, %s, %s, %s, %s)',
+                       [self.id, box['category'], box['item'], box['value'], box['currency']])
 
     def save(self):
         self.save_persons()
