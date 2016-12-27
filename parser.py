@@ -97,7 +97,7 @@ class App():
                 page = Downloader.get(self.get_film_url(film_id))
                 film = Film(film_id, page)
                 break
-            except ConnectionError:
+            except TypeError:
                 tries = tries - 1
                 if tries == 0:
                     raise Exception('Could not parse film')
