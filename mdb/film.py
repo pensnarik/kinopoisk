@@ -325,11 +325,13 @@ class Film(object):
             country = td_country[0].text_content()
             country_id = self.extract_country_id_from_url(td_country[0].get('href'))
             small = td_small[0].text_content().strip()
-            count = re.sub('[^\d]', '', td_count[0].text_content())
+            logger.info(td_count[0].text_content())
+            m = re.search(u'(.+)чел.', td_count[0].text_content(), re.UNICODE)
 
             try:
+                count = re.sub('[^\d]', '', m.group(1))
                 count = int(count)
-            except ValueError:
+            except (AttributeError, ValueError):
                 count = None
 
             logger.warning('%s: %s (%s) (%s): %s' % (date, country, country_id, small, count))
