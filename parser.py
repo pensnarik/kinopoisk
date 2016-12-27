@@ -30,9 +30,10 @@ class App():
     def __init__(self):
         parser = argparse.ArgumentParser(description='Generate SQL statemets to create '
                                                      'attribute tables.')
-        parser.add_argument('--year', type=int, help='Year to process', required=True)
+        parser.add_argument('--year', type=int, help='Year to process')
         parser.add_argument('--hostname', type=str, help='Hostname', required=False,
                             default=gethostname())
+        parser.add_argument('--film-id', type=int, help='Film ID')
         self.args = parser.parse_args()
         # Initialization of the cache
         if not os.path.exists(Downloader.get_cache_path()):
@@ -96,14 +97,13 @@ class App():
                 page = Downloader.get(self.get_film_url(film_id))
                 film = Film(film_id, page)
                 break
-            except TypeError:
+            except ConnectionError:
                 tries = tries - 1
                 if tries == 0:
                     raise Exception('Could not parse film')
                 time.sleep(100)
 
         logger.warning('%s (%s) | %s' % (film.title, film.alternative_title, film.year,))
-        logger.warning('%s from %s' % (self.get_current_count(), self.total_count,))
         return film
 
     def get_current_count(self):
@@ -131,9 +131,15 @@ class App():
                 logger.info('%s | %s | %s' % (id, title, href,))
                 f = self.get_film(id)
                 f.save()
+                logger.warning('%s from %s' % (self.get_current_count(), self.total_count,))
                 self.update_stat()
 
     def run(self):
+        if self.args.film_id is not None:
+            logger.warning('======= Processing film %s =======' % self.args.film_id)
+            f = self.get_film(self.args.film_id)
+            f.save()
+            sys.exit(0)
         while self.args.year < 2016:
             self.get_year(self.args.year)
             self.args.year = self.args.year + 1
