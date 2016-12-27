@@ -149,4 +149,20 @@ create table mdb.stat
 grant select, update, insert on mdb.stat to mdb;
 grant select, usage on sequence mdb.stat_id_seq to mdb;
 
+create table mdb.dates
+(
+    id              serial primary key,
+    movie_id        integer not null references mdb.movie(id),
+    country_id      integer not null references mdb.country(id),
+    premiere_date   date,
+    premiere_precision char(1),
+    viewers         integer,
+    commentary      text
+);
+
+create index on mdb.dates (movie_id);
+
+grant select, insert, update, delete on mdb.dates to mdb;
+grant select, usage on sequence mdb.dates_id_seq to mdb;
+
 end;

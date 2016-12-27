@@ -33,6 +33,7 @@ class Film(object):
         self.age_restriction = None
         self.premieres = list()
         self.world_premiere = None
+        self.dates = list()
         self.parse()
         logger.info(self.premieres)
 
@@ -61,7 +62,7 @@ class Film(object):
             href = a.get('href')
             name = a.text_content()
             id = self.extract_country_id_from_url(href)
-            yield {'id': id, 'name': name}
+            self.countries.append({'id': id, 'name': name})
 
     def parse_slogan(self, elem):
         return unhtml(elem.text_content())
@@ -157,7 +158,7 @@ class Film(object):
                         self.id])
 
     def get_cast(self):
-        page = Downloader.get('http://www.kinopoisk.ru/film/%s/cast/' % self.id)
+        page = Downloader.get('https://www.kinopoisk.ru/film/%s/cast/' % self.id)
         html = fromstring(page)
 
         self.cast = list()
@@ -309,6 +310,42 @@ class Film(object):
                            'precision) values (%s, %s, %s, %s)',
                            [self.id, premiere['region'], premiere['date'], premiere['precision']])
 
+    def get_dates(self):
+        page = Downloader.get('https://www.kinopoisk.ru/film/%s/dates/' % self.id)
+        html = fromstring(page)
+        for div in html.xpath('//table//tr//div[contains(@class, "flag")]'):
+            td_date = div.getparent().getnext()
+            td_country = td_date.getnext().xpath('.//a[contains(@class, "all")]')
+            td_small = td_date.getnext().xpath('.//small')
+            td_count = td_date.getnext().getnext().xpath('.//small')
+
+            date = self.get_premiere_date(td_date[0].text_content().strip())
+            country = td_country[0].text_content()
+            country_id = self.extract_country_id_from_url(td_country[0].get('href'))
+            small = td_small[0].text_content().strip()
+            count = re.sub('[^\d]', '', td_count[0].text_content())
+
+            try:
+                count = int(count)
+            except ValueError:
+                count = None
+
+            logger.warning('%s: %s (%s) (%s): %s' % (date, country, country_id, small, count))
+
+            if country_id not in [i['id'] for i in self.countries]:
+                self.countries.append({'id': country_id, 'name': country})
+            self.dates.append({'date': date, 'country_id': country_id,
+                               'commentary': small, 'viewers': count})
+
+    def save_dates(self):
+        db.execute('delete from mdb.dates where movie_id = %s', [self.id])
+        for date in self.dates:
+            db.execute('insert into mdb.dates (movie_id, country_id, premiere_date, '
+                       'premiere_precision, viewers, commentary) '
+                       'values (%s, %s, %s, %s, %s, %s)',
+                       [self.id, date['country_id'], date['date']['date'],
+                        date['date']['precision'], date['viewers'], date['commentary']])
+
     def save(self):
         self.save_persons()
         self.save_countries()
@@ -317,6 +354,7 @@ class Film(object):
         self.save_premieres()
         self.save_cast()
         self.save_ratings()
+        self.save_dates()
 
     def parse_info(self):
         for line in self.html.xpath('//table[contains(@class, "info")]//tr'):
@@ -326,8 +364,7 @@ class Film(object):
             second_column = line.xpath('.//td[2]')[0]
 
             if info_type_str == u'страна':
-                for country in self.parse_countries(second_column):
-                    self.countries.append(country)
+                self.parse_countries(second_column)
             elif info_type_str == u'слоган':
                 self.slogan = self.parse_slogan(second_column)
 
@@ -350,5 +387,5 @@ class Film(object):
         self.parse_info()
         self.get_cast()
         self.get_ratings()
-
+        self.get_dates()
 
