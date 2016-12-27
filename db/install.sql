@@ -45,10 +45,17 @@ create table mdb.movie_boxes
 (
     id              serial primary key,
     movie_id        integer not null references mdb.movie(id),
-    country_id      integer not null references mdb.country(id)
+    category        text not null,
+    item            text not null,
+    value           integer
 );
 
 comment on table mdb.movie_boxes is 'Сборы';
+
+grant select, usage on sequence mdb.movie_boxes_id_seq to mdb;
+grant select, insert, update, delete on mdb.movie_boxes to mdb;
+
+create index on mdb.movie_boxes (movie_id);
 
 create table mdb.rating_history
 (

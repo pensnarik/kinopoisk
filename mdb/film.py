@@ -17,6 +17,7 @@ logger.setLevel(logging.DEBUG)
 class Film(object):
 
     def __init__(self, id, buffer):
+        self.buffer = buffer
         self.html = fromstring(buffer)
         self.id = id
         self.countries = list()
@@ -34,6 +35,7 @@ class Film(object):
         self.premieres = list()
         self.world_premiere = None
         self.dates = list()
+        self.boxes = list()
         self.parse()
         logger.info(self.premieres)
 
@@ -346,6 +348,33 @@ class Film(object):
                        [self.id, date['country_id'], date['date']['date'],
                         date['date']['precision'], date['viewers'], date['commentary']])
 
+    def get_boxes(self):
+        """
+        Информация о кассовых сборах и бюджете
+        """
+        logger.warning('Parsing boxes')
+        page = Downloader.get('https://www.kinopoisk.ru/film/%s/box/' % self.id)
+        html = fromstring(page)
+        for div in html.xpath('//div[@style="width: 274px"]//table'):
+            group = div.xpath('.//tr//td')[0].text_content()
+            logger.warning(group)
+            for b in div.xpath('.//td[@colspan="2"]//b'):
+                title = b.text_content().replace(':', '')
+                if title == group:
+                    continue
+                next_tr = b.getparent().getparent().getnext().xpath('.//td')[0]
+                value = re.sub('[^\d]', '', next_tr.text_content().strip(), re.UNICODE)
+                logger.warning('"%s" : "%s"' % (title, value,))
+                if value != '':
+                    self.boxes.append({'category': group, 'item': title, 'value': value})
+
+    def save_boxes(self):
+        db.execute('delete from mdb.movie_boxes where movie_id = %s', [self.id])
+        for box in self.boxes:
+            db.execute('insert into mdb.movie_boxes(movie_id, category, item, value) '
+                       'values (%s, %s, %s, %s)',
+                       [self.id, box['category'], box['item'], box['value']])
+
     def save(self):
         self.save_persons()
         self.save_countries()
@@ -355,6 +384,7 @@ class Film(object):
         self.save_cast()
         self.save_ratings()
         self.save_dates()
+        self.save_boxes()
 
     def parse_info(self):
         for line in self.html.xpath('//table[contains(@class, "info")]//tr'):
@@ -388,4 +418,7 @@ class Film(object):
         self.get_cast()
         self.get_ratings()
         self.get_dates()
-
+        if '/film/%s/box/' % self.id in self.buffer:
+            self.get_boxes()
+        else:
+            logger.warning('There is not boxes information for this movie')
