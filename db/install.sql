@@ -47,7 +47,7 @@ create table mdb.movie_boxes
     movie_id        integer not null references mdb.movie(id),
     category        text not null,
     item            text not null,
-    value           integer
+    value           bigint
 );
 
 comment on table mdb.movie_boxes is 'Сборы';
