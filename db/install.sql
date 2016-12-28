@@ -151,7 +151,8 @@ create table mdb.stat
     year            integer not null unique,
     done_count      integer not null default 0 check (done_count >= 0),
     total_count     integer not null check (total_count >= 0),
-    last_update_time timestamptz(0) not null default now()
+    last_update_time timestamptz(0) not null default now(),
+    last_movie_id   integer
 );
 
 grant select, update, insert on mdb.stat to mdb;
