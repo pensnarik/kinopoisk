@@ -218,7 +218,7 @@ class Film(object):
             # поскольку состав разбивается на страницы по 100 человек
             #while people_extracted > 0:
             start_list = 10000
-            logger.info('Trying to get more pages... (role = %s)' % role)
+            logger.info('Trying to get more pages...')
             count = len(self.cast)
             page = Downloader.get(url, method='POST', salt=str(start_list),
                                   data={'start_list': start_list})
