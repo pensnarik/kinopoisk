@@ -12,6 +12,7 @@ import __main__
 from random import randint
 
 import mdb.helpers
+import config
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -38,7 +39,7 @@ class Downloader():
 
             while tries_left > 0:
                 try:
-                    sleep_time = randint(1, 20)
+                    sleep_time = randint(1, config.sleep_time)
                     logger.info('Sleeping %s, tries left: %s' % (sleep_time, tries_left))
                     time.sleep(sleep_time)
 

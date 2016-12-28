@@ -34,12 +34,15 @@ class App():
         parser.add_argument('--hostname', type=str, help='Hostname', required=False,
                             default=gethostname())
         parser.add_argument('--film-id', type=int, help='Film ID')
+        parser.add_argument('--sleep-time', type=int, help='Max sleep time between requests',
+                            default=20)
         self.args = parser.parse_args()
         # Initialization of the cache
         if not os.path.exists(Downloader.get_cache_path()):
             os.mkdir(Downloader.get_cache_path())
         # Initialization of database connection
         db.connect(config.dsn)
+        config.sleep_time = self.args.sleep_time
 
     def get_rating_history(self, film_id):
         """
