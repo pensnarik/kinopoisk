@@ -4,7 +4,6 @@
 import os
 import re
 import sys
-import time
 import logging
 import argparse
 from socket import gethostname
