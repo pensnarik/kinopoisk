@@ -159,11 +159,47 @@ class Film(object):
                         self.world_premiere,
                         self.id])
 
-    def get_cast(self):
-        page = Downloader.get('https://www.kinopoisk.ru/film/%s/cast/' % self.id)
-        html = fromstring(page)
+    def extract_people_from_list(self, role, div, html, skip_first_div):
+        if skip_first_div is True:
+            div = div.getnext()
 
-        self.cast = list()
+        while div is not None:
+            #logger.warning(div.text_content())
+            if div is None or div.tag != 'div':
+                break
+            if 'dub' not in div.get('class').split():
+                continue
+
+            person = dict()
+
+            name = div.xpath('.//div[@class="info"]//div[@class="name"]//a')[0]
+            alternative_name = div.xpath('.//div[@class="info"]//div[@class="name"]//span[@class="gray"]')
+            commentary = div.xpath('.//div[@class="info"]//div[@class="role"]')
+
+            person['id'] = self.extract_person_id_from_url(name.get('href'))
+            person['name'] = name.text_content()
+
+            if alternative_name is not None:
+                person['alternative_name'] = alternative_name[0].text_content()
+
+            if commentary is not None:
+                commentary_str = commentary[0].text_content().replace('... , ', '').replace('... ', '').strip()
+                person['commentary'] = commentary_str if commentary_str != '' else None
+
+            person['role'] = role
+            self.cast.append(person)
+            div = div.getnext()
+
+    def extract_people_from_cast_page(self, url, check_pages=False):
+        """
+        Извлекает со страницы данные о создателях фильма
+        """
+        logger.info('Extracting people from cast page "%s"' % url)
+
+        page = Downloader.get(url)
+        html = fromstring(page)
+        count = len(self.cast)
+        start_list = 0
 
         for anchor in html.xpath('//a'):
             role = anchor.get('name')
@@ -171,32 +207,47 @@ class Film(object):
                 continue
             div = anchor.getnext()
 
-            while div is not None:
-                div = div.getnext()
-                if div is None or div.tag != 'div':
-                    break
-                if 'dub' not in div.get('class').split():
-                    continue
+            last_role = role
+            self.extract_people_from_list(last_role, div, html, True)
 
-                person = dict()
+        people_extracted = len(self.cast) - count
 
-                name = div.xpath('.//div[@class="info"]//div[@class="name"]//a')[0]
-                alternative_name = div.xpath('.//div[@class="info"]//div[@class="name"]//span[@class="gray"]')
-                commentary = div.xpath('.//div[@class="info"]//div[@class="role"]')
+        if check_pages is True and people_extracted == 100:
+            # Следующие страницы стоит пытаться получить только
+            # в случае, если с текущей мы извлекли 100 записей,
+            # поскольку состав разбивается на страницы по 100 человек
+            #while people_extracted > 0:
+            start_list = 10000
+            logger.info('Trying to get more pages... (role = %s)' % role)
+            count = len(self.cast)
+            page = Downloader.get(url, method='POST', salt=str(start_list),
+                                  data={'start_list': start_list})
+            html = fromstring(page)
+            self.extract_people_from_list(last_role,
+                                          html.xpath('//div[contains(@class, "dub")]')[0],
+                                          html, False)
+            people_extracted = len(self.cast) - count
 
-                person['id'] = self.extract_person_id_from_url(name.get('href'))
-                person['name'] = name.text_content()
+    def get_cast(self):
+        page = Downloader.get('https://www.kinopoisk.ru/film/%s/cast/' % self.id)
+        html = fromstring(page)
 
-                if alternative_name is not None:
-                    person['alternative_name'] = alternative_name[0].text_content()
+        self.cast = list()
+        cast_links = list()
 
-                if commentary is not None:
-                    commentary_str = commentary[0].text_content().replace('... ', '').strip()
-                    person['commentary'] = commentary_str if commentary_str != '' else None
+        links = html.xpath('//td[contains(@class, "anchers")]//a[@class="all"]')
+        for link in links:
+            if '/who_is/' in link.get('href'):
+                cast_links.append('https://www.kinopoisk.ru%s' % link.get('href'))
 
-                person['role'] = role
-
-                self.cast.append(person)
+        if len(cast_links) > 0:
+            # Страница с актёрами открывается по умолчанию, поэтому ссылки на неё нет,
+            # добавим её вручную. Также проверять, есть ли ещё записи на странице нужно
+            # только в том случае, если состав разбит на несколько страниц по группам
+            cast_links.append('https://www.kinopoisk.ru/film/%s/cast/who_is/actor/' % self.id)
+            [self.extract_people_from_cast_page(url, check_pages=True) for url in cast_links]
+        else:
+            self.extract_people_from_cast_page('https://www.kinopoisk.ru/film/%s/cast/' % self.id)
 
     def get_ratings(self):
         kinopoisk = dict()
