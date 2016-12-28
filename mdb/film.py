@@ -21,6 +21,7 @@ class Film(object):
         self.html = fromstring(buffer)
         self.id = id
         self.countries = list()
+        self.countries_to_save = list()
         self.slogan = None
         self.persons = list()
         self.length = None
@@ -116,7 +117,7 @@ class Film(object):
                                                    person['commentary']])
 
     def save_countries(self):
-        for country in self.countries:
+        for country in (self.countries + self.countries_to_save):
             self.save_country(country['id'], country['name'])
 
     def get_array_of_id(self, for_list):
@@ -388,7 +389,7 @@ class Film(object):
                 count = None
 
             if country_id not in [i['id'] for i in self.countries]:
-                self.countries.append({'id': country_id, 'name': country})
+                self.countries_to_save.append({'id': country_id, 'name': country})
             self.dates.append({'date': date, 'country_id': country_id,
                                'commentary': small, 'viewers': count})
 
