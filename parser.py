@@ -93,18 +93,8 @@ class App():
         """
         Extracts all informarion about film
         """
-        tries = 10
-
-        while True:
-            try:
-                page = Downloader.get(self.get_film_url(film_id))
-                film = Film(film_id, page)
-                break
-            except TypeError:
-                tries = tries - 1
-                if tries == 0:
-                    raise Exception('Could not parse film')
-                time.sleep(100)
+        page = Downloader.get(self.get_film_url(film_id))
+        film = Film(film_id, page)
 
         logger.warning('%s (%s) | %s' % (film.title, film.alternative_title, film.year,))
         return film
@@ -127,14 +117,22 @@ class App():
                        [self.get_current_count(), self.total_count, self.args.hostname,
                         last_movie_id, self.args.year])
 
+    def log_error(self, movie_id, message):
+        logger.error('Could not parse movie %s: "%s"' % (movie_id, message,))
+        db.execute('insert into mdb.error(hostname, movie_id, message) '
+                   'values (%s, %s, %s)', [self.args.hostname, movie_id, message])
+
     def get_year(self, year):
         logger.info('======= Processing year %s =======' % self.args.year)
         for page_number in range(1, self.get_pages_count(year) + 1):
             logger.info("Processing page %s" % page_number)
             for id, title, href in self.get_films_from_page(self.get_url_for_year(year, page_number)):
                 logger.info('%s | %s | %s' % (id, title, href,))
-                f = self.get_film(id)
-                f.save()
+                try:
+                    f = self.get_film(id)
+                    f.save()
+                except Exception as e:
+                    self.log_error(id, str(e))
                 logger.warning('%s from %s' % (self.get_current_count(), self.total_count,))
                 self.update_stat(id)
 

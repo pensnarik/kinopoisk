@@ -175,4 +175,16 @@ create index on mdb.dates (movie_id);
 grant select, insert, update, delete on mdb.dates to mdb;
 grant select, usage on sequence mdb.dates_id_seq to mdb;
 
+create table mdb.error
+(
+    id              serial primary key,
+    date_time       timestamptz(0) not null default now(),
+    hostname        text,
+    movie_id        integer,
+    message         text
+);
+
+grant select, usage on sequence mdb.error_id_seq to mdb;
+grant select, insert on mdb.error to mdb;
+
 end;
