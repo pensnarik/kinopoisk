@@ -11,3 +11,4 @@ rsync -avz --compress-level=9 --progress crm.smartsales.su:~/kinopoisk/cache .
 rsync -avz --compress-level=9 --progress new.smartsales.su:~/kinopoisk/cache .
 rsync -avz --compress-level=9 --progress store.parselab.ru:~/kinopoisk/cache .
 rsync -avz --compress-level=9 --progress mutex@unicadb.parselab.ru:~/kinopoisk/cache .
+rsync -avz --compress-level=9 --progress parser8.parselab.ru:~/kinopoisk/cache .
