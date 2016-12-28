@@ -147,7 +147,7 @@ class Film(object):
                        'rating_imdb = %s, directors = %s, scenario = %s, '
                        'operators = %s, composers = %s, producers = %s, arts = %s, '
                        'editors = %s, age_restriction = %s, countries = %s, rating_critics = %s, '
-                       'world_premiere = %s '
+                       'world_premiere = %s, update_date = now() '
                        'where id = %s',
                        [self.title, self.alternative_title, self.year, self.slogan,
                         self.length, self.get_array_of_id(self.genres),

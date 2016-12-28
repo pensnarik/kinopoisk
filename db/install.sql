@@ -38,7 +38,8 @@ create table mdb.movie
     rating_kinopoisk numeric,
     rating_critics  numeric,
     world_premiere  date,
-    parse_date      timestamptz(0) not null default now()
+    parse_date      timestamptz(0) not null default now(),
+    update_date     timestamptz(0)
 );
 
 create table mdb.movie_boxes
