@@ -56,9 +56,10 @@ class Downloader():
                     break
                 except (ConnectionError, OSError, GetPageError, ReadTimeout):
                     tries_left = tries_left - 1
+                    seconds_to_sleep = 100 * (100 - tries_left)
                     logger.warning('Will sleep %s seconds due to connection error' %
-                                   100 * (100 - tries_left))
-                    time.sleep(100 * (100 - tries_left))
+                                   seconds_to_sleep)
+                    time.sleep(seconds_to_sleep)
 
             if response.status_code == 200 and response is not None:
                 Downloader.write_to_cache(url, salt, response.text)
