@@ -1,7 +1,6 @@
 #!/bin/env python
 # -*- encoding: utf-8 -*-
 
-import os
 import re
 import sys
 import logging
@@ -37,11 +36,15 @@ class App():
                             default=20)
         self.args = parser.parse_args()
         # Initialization of the cache
-        if not os.path.exists(Downloader.get_cache_path()):
-            os.mkdir(Downloader.get_cache_path())
+        Downloader.init_cache()
         # Initialization of database connection
         db.connect(config.dsn)
         config.sleep_time = self.args.sleep_time
+        if self.args.year is not None:
+            self.set_year(self.args.year)
+
+    def set_year(self, year):
+        config.year = year
 
     def get_rating_history(self, film_id):
         """
@@ -99,22 +102,22 @@ class App():
         return film
 
     def get_current_count(self):
-        return db.query_value('select count(*) from mdb.movie where year = %s' % self.args.year)
+        return db.query_value('select count(*) from mdb.movie where year = %s' % config.year)
 
     def update_stat(self, last_movie_id):
-        id = db.query_value('select id from mdb.stat where year = %s', [self.args.year])
+        id = db.query_value('select id from mdb.stat where year = %s', [config.year])
         if id is None:
             db.execute('insert into mdb.stat (year, done_count, total_count, hostname, '
                        'last_movie_id) '
                        'values (%s, %s, %s, %s, %s)',
-                       [self.args.year, self.get_current_count(), self.total_count,
+                       [config.year, self.get_current_count(), self.total_count,
                         self.args.hostname, last_movie_id])
         else:
             db.execute('update mdb.stat set done_count = %s, total_count = %s, hostname = %s, '
                        'last_update_time = current_timestamp, last_movie_id = %s '
                        'where year = %s',
                        [self.get_current_count(), self.total_count, self.args.hostname,
-                        last_movie_id, self.args.year])
+                        last_movie_id, config.year])
 
     def log_error(self, movie_id, message):
         logger.error('Could not parse movie %s: "%s"' % (movie_id, message,))
@@ -122,7 +125,7 @@ class App():
                    'values (%s, %s, %s)', [self.args.hostname, movie_id, message])
 
     def get_year(self, year):
-        logger.info('======= Processing year %s =======' % self.args.year)
+        logger.info('======= Processing year %s =======' % year)
         for page_number in range(1, self.get_pages_count(year) + 1):
             logger.info("Processing page %s" % page_number)
             for id, title, href in self.get_films_from_page(self.get_url_for_year(year, page_number)):
@@ -141,9 +144,9 @@ class App():
             f = self.get_film(self.args.film_id)
             f.save()
             sys.exit(0)
-        while self.args.year < 2016:
-            self.get_year(self.args.year)
-            self.args.year = self.args.year + 1
+        while config.year < 2016:
+            self.get_year(config.year)
+            self.set_year(config.year + 1)
 
 
 if __name__ == '__main__':
