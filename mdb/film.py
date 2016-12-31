@@ -38,7 +38,6 @@ class Film(object):
         self.dates = list()
         self.boxes = list()
         self.parse()
-        logger.info(self.premieres)
 
     def parse_title(self):
         h1 = self.html.xpath('//h1[@class="moviename-big"]')
@@ -312,7 +311,6 @@ class Film(object):
                 id = self.extract_genre_id_from_url(a.get('href'))
                 name = a.text_content()
                 self.genres.append({'id': id, 'name': name})
-        logger.info(self.genres)
 
     def save_genres(self):
         for genre in self.genres:
@@ -480,5 +478,3 @@ class Film(object):
         self.get_dates()
         if '/film/%s/box/' % self.id in self.buffer:
             self.get_boxes()
-        else:
-            logger.warning('There is not boxes information for this movie')
