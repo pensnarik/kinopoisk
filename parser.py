@@ -144,7 +144,7 @@ class App():
             f = self.get_film(self.args.film_id)
             f.save()
             sys.exit(0)
-        while config.year < 2016:
+        while config.year <= 2016:
             self.get_year(config.year)
             self.set_year(config.year + 1)
 
