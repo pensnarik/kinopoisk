@@ -34,6 +34,7 @@ class App():
         parser.add_argument('--film-id', type=int, help='Film ID')
         parser.add_argument('--sleep-time', type=int, help='Max sleep time between requests',
                             default=20)
+        parser.add_argument('--total', required=False, default=False, action='store_true')
         self.args = parser.parse_args()
         # Initialization of the cache
         Downloader.init_cache()
@@ -119,6 +120,15 @@ class App():
                        [self.get_current_count(), self.total_count, self.args.hostname,
                         last_movie_id, config.year])
 
+    def update_total(self):
+        id = db.query_value('select id from mdb.stat where year = %s', [config.year])
+        if id is None:
+            db.execute('insert into mdb.stat (year, done_count, total_count, hostname, '
+                       'last_movie_id) '
+                       'values (%s, %s, %s, %s, %s)',
+                       [config.year, 0, self.total_count, None, None])
+
+
     def log_error(self, movie_id, message):
         logger.error('Could not parse movie %s: "%s"' % (movie_id, message,))
         db.execute('insert into mdb.error(hostname, movie_id, message) '
@@ -139,11 +149,20 @@ class App():
                 self.update_stat(id)
 
     def run(self):
-        if self.args.film_id is not None:
+        if self.args.total is True:
+            logger.warning('======= Updating total stat =======')
+            for year in range(1890, 2017):
+                logger.warning('Year %s' % year)
+                config.year = year
+                self.get_pages_count(year)
+                self.update_total()
+            return
+        elif self.args.film_id is not None:
             logger.warning('======= Processing film %s =======' % self.args.film_id)
             f = self.get_film(self.args.film_id)
             f.save()
             sys.exit(0)
+
         while config.year <= 2017:
             self.get_year(config.year)
             self.set_year(config.year + 1)
