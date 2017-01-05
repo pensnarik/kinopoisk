@@ -39,7 +39,8 @@ create table mdb.movie
     rating_critics  numeric,
     world_premiere  date,
     parse_date      timestamptz(0) not null default now(),
-    update_date     timestamptz(0)
+    update_date     timestamptz(0),
+    rating_mpaa     varchar(10)
 );
 
 create table mdb.movie_boxes

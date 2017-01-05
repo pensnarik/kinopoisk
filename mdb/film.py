@@ -37,6 +37,7 @@ class Film(object):
         self.world_premiere = None
         self.dates = list()
         self.boxes = list()
+        self.rating_mpaa = None
         self.parse()
 
     def parse_title(self):
@@ -93,12 +94,6 @@ class Film(object):
         else:
             return None
 
-    def save_persons_in_movie(self):
-        # Depricated
-        db.execute('delete from mdb.person_in_movie where movie_id = %s', [self.id])
-        for person in self.persons:
-            db.execute('insert into mdb.person_in_movie(movie_id, person_id, role) '
-                       'values (%s, %s, %s)', [self.id, person['id'], person['role']])
 
     def save_persons(self):
         for person in self.cast:
@@ -128,9 +123,10 @@ class Film(object):
             db.execute('insert into mdb.movie(id, title, alternative_title, year, slogan, '
                        'length, genres, rating_kinopoisk, rating_imdb, '
                        'directors, scenario, operators, composers, producers, arts, editors, '
-                       'age_restriction, countries, rating_critics, world_premiere) '
+                       'age_restriction, countries, rating_critics, world_premiere, '
+                       'rating_mpaa) '
                        'values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, '
-                       '%s, %s, %s, %s)',
+                       '%s, %s, %s, %s, %s)',
                        [self.id, self.title, self.alternative_title, self.year,
                         self.slogan, self.length, self.get_array_of_id(self.genres),
                         self.rating_kinopoisk, self.rating_imdb,
@@ -139,14 +135,14 @@ class Film(object):
                         self.get_persons_by_role('producer'), self.get_persons_by_role('design'),
                         self.get_persons_by_role('editor'), self.age_restriction,
                         self.get_array_of_id(self.countries), self.rating_critics,
-                        self.world_premiere])
+                        self.world_premiere, self.rating_mpaa])
         else:
             db.execute('update mdb.movie set title = %s, alternative_title = %s, year = %s, '
                        'slogan = %s, length = %s, genres = %s, rating_kinopoisk = %s, '
                        'rating_imdb = %s, directors = %s, scenario = %s, '
                        'operators = %s, composers = %s, producers = %s, arts = %s, '
                        'editors = %s, age_restriction = %s, countries = %s, rating_critics = %s, '
-                       'world_premiere = %s, update_date = now() '
+                       'world_premiere = %s, update_date = now(), rating_mpaa = %s '
                        'where id = %s',
                        [self.title, self.alternative_title, self.year, self.slogan,
                         self.length, self.get_array_of_id(self.genres),
@@ -156,7 +152,7 @@ class Film(object):
                         self.get_persons_by_role('producer'), self.get_persons_by_role('design'),
                         self.get_persons_by_role('editor'), self.age_restriction,
                         self.get_array_of_id(self.countries), self.rating_critics,
-                        self.world_premiere,
+                        self.world_premiere, self.rating_mpaa,
                         self.id])
 
     def extract_people_from_list(self, role, div, html, skip_first_div):
@@ -433,6 +429,9 @@ class Film(object):
                        'values (%s, %s, %s, %s, %s)',
                        [self.id, box['category'], box['item'], box['value'], box['currency']])
 
+    def get_mpaa(self, elem):
+        self.rating_mpaa = elem.xpath('.//img')[0].get('alt').replace(u'рейтинг ', '')
+
     def save(self):
         self.save_persons()
         self.save_countries()
@@ -469,6 +468,8 @@ class Film(object):
                 self.get_age_restriction(second_column)
             elif info_type_str.startswith(u'премьера'):
                 self.get_premieres(second_column)
+            elif info_type_str == u'рейтинг MPAA':
+                self.get_mpaa(second_column)
 
     def parse(self):
         self.parse_title()
