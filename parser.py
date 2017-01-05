@@ -35,7 +35,10 @@ class App():
         parser.add_argument('--sleep-time', type=int, help='Max sleep time between requests',
                             default=20)
         parser.add_argument('--total', required=False, default=False, action='store_true')
+        parser.add_argument('--read-only', required=False, default=False, action='store_true')
+        parser.add_argument('--cache-path', required=False, default='.', type=str)
         self.args = parser.parse_args()
+        config.cache_path = self.args.cache_path
         # Initialization of the cache
         Downloader.init_cache()
         # Initialization of database connection
@@ -128,7 +131,6 @@ class App():
                        'values (%s, %s, %s, %s, %s)',
                        [config.year, 0, self.total_count, None, None])
 
-
     def log_error(self, movie_id, message):
         logger.error('Could not parse movie %s: "%s"' % (movie_id, message,))
         db.execute('insert into mdb.error(hostname, movie_id, message) '
@@ -142,11 +144,13 @@ class App():
                 logger.info('%s | %s | %s' % (id, title, href,))
                 try:
                     f = self.get_film(id)
-                    f.save()
+                    if self.args.read_only is False:
+                        f.save()
                 except Exception as e:
                     self.log_error(id, str(e))
                 logger.warning('%s from %s' % (self.get_current_count(), self.total_count,))
-                self.update_stat(id)
+                if self.args.read_only is False:
+                    self.update_stat(id)
 
     def run(self):
         if self.args.total is True:

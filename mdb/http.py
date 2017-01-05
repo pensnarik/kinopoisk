@@ -97,7 +97,10 @@ class Downloader():
         """
         Возвращает базовую директорию с кешем
         """
-        return os.path.join(os.path.dirname(os.path.abspath(__main__.__file__)), 'cache')
+        if config.cache_path is None:
+            return os.path.join(os.path.dirname(os.path.abspath(__main__.__file__)), 'cache')
+        else:
+            return os.path.join(config.cache_path, 'cache')
 
     @staticmethod
     def sure_year_directory_exists(year):
