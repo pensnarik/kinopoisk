@@ -68,6 +68,16 @@ class App():
                             os.mkdir(os.path.join(self.cache_path, str(self.mapping[id])))
                         print('%s -> %s' % (filename, new_path))
                         shutil.move(filename, new_path)
+        for year in range(1890, 2018):
+            print(year)
+            for page in range(1, 1000):
+                hash = hashlib.md5(('https://www.kinopoisk.ru/lists/ord/name/m_act[year]/%s/m_act[all]/ok/page/%s/' %
+                                    (year, page)).encode('utf-8')).hexdigest()
+                filename = os.path.join(self.cache_path, hash)
+                if os.path.exists(filename):
+                    new_path = os.path.join(self.cache_path, str(year), hash)
+                    print('%s -> %s' % (filename, new_path))
+                    shutil.move(filename, new_path)
 
 
 if __name__ == '__main__':
