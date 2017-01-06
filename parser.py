@@ -37,6 +37,7 @@ class App():
         parser.add_argument('--total', required=False, default=False, action='store_true')
         parser.add_argument('--read-only', required=False, default=False, action='store_true')
         parser.add_argument('--cache-path', required=False, default='.', type=str)
+        parser.add_argument('--update', required=False, default=False, action='store_true')
         self.args = parser.parse_args()
         config.cache_path = self.args.cache_path
         # Initialization of the cache
@@ -56,9 +57,9 @@ class App():
         """
         return
 
-    def get_pages_count(self, year):
+    def get_pages_count(self, year, force_download=False):
         logger.info('Getting pages count for year %s' % year)
-        page = Downloader.get(self.get_url_for_year(year))
+        page = Downloader.get(self.get_url_for_year(year), force_download=force_download)
         html = fromstring(page)
         a = html.xpath('//ul[@class="list"]//li[@class="arr"][last()]//a')
         if a is None or len(a) == 0:
@@ -83,8 +84,8 @@ class App():
         m = re.search('/(\d+)/$', url)
         return int(m.group(1))
 
-    def get_films_from_page(self, url):
-        page = Downloader.get(url)
+    def get_films_from_page(self, url, force_download=False):
+        page = Downloader.get(url, force_download=force_download)
         html = fromstring(page)
         for item in html.xpath('//div[contains(@class, "item")]//div[@class="name"]//a'):
             title = item.text_content()
@@ -136,12 +137,22 @@ class App():
         db.execute('insert into mdb.error(hostname, movie_id, message) '
                    'values (%s, %s, %s)', [self.args.hostname, movie_id, message])
 
-    def get_year(self, year):
+    def is_film_exists(self, movie_id):
+        return db.query_value('select count(*) from mdb.movie where id = %s', [movie_id]) > 0
+
+    def get_year(self, year, update_mode=False):
         logger.info('======= Processing year %s =======' % year)
-        for page_number in range(1, self.get_pages_count(year) + 1):
+        for page_number in range(1, self.get_pages_count(year, force_download=update_mode) + 1):
             logger.info("Processing page %s" % page_number)
-            for id, title, href in self.get_films_from_page(self.get_url_for_year(year, page_number)):
+            for id, title, href in self.get_films_from_page(self.get_url_for_year(year, page_number),
+                                                            force_download=update_mode):
+                if update_mode and self.is_film_exists(id) is True:
+                    continue
+                if update_mode and self.is_film_exists(id) is False:
+                    logger.warning('New film found')
+
                 logger.info('%s | %s | %s' % (id, title, href,))
+
                 try:
                     f = self.get_film(id)
                     if self.args.read_only is False:
@@ -161,6 +172,8 @@ class App():
                 self.get_pages_count(year)
                 self.update_total()
             return
+        elif self.args.update is True:
+            logger.warning('Running in UPDATE mode')
         elif self.args.film_id is not None:
             logger.warning('======= Processing film %s =======' % self.args.film_id)
             f = self.get_film(self.args.film_id)
@@ -168,7 +181,7 @@ class App():
             sys.exit(0)
 
         while config.year <= 2017:
-            self.get_year(config.year)
+            self.get_year(config.year, update_mode=self.args.update)
             self.set_year(config.year + 1)
 
 
