@@ -28,9 +28,9 @@ class Downloader():
     Реализует интерфейс для получения страниц сайта напрямую или через кеш
     """
     @staticmethod
-    def get(url, method='GET', salt=None, data=None):
+    def get(url, method='GET', salt=None, data=None, force_download=False):
         display_url = url if salt is None else '%s:%s' % (url, salt,)
-        if Downloader.is_url_in_cache(url, salt):
+        if Downloader.is_url_in_cache(url, salt) and force_download is False:
             logger.info('Reading %s from cache...' % display_url)
             return Downloader.get_from_cache(url, salt)
         else:
