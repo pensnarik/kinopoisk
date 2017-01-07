@@ -24,6 +24,8 @@ class App():
 
     base = 'https://www.kinopoisk.ru'
     total_count = None
+    current_page = None
+    total_pages = None
 
     def __init__(self):
         parser = argparse.ArgumentParser(description='Generate SQL statemets to create '
@@ -38,6 +40,7 @@ class App():
         parser.add_argument('--read-only', required=False, default=False, action='store_true')
         parser.add_argument('--cache-path', required=False, default='.', type=str)
         parser.add_argument('--update', required=False, default=False, action='store_true')
+        parser.add_argument('--start-page', required=False, default=1, type=int)
         self.args = parser.parse_args()
         config.cache_path = self.args.cache_path
         # Initialization of the cache
@@ -75,6 +78,7 @@ class App():
             raise Exception('Could not get total records count!')
 
         logger.info('Got total_count = %s' % self.total_count)
+        self.total_pages = pages_count
         return pages_count
 
     def get_url_for_year(self, year, page=1):
@@ -113,24 +117,27 @@ class App():
         id = db.query_value('select id from mdb.stat where year = %s', [config.year])
         if id is None:
             db.execute('insert into mdb.stat (year, done_count, total_count, hostname, '
-                       'last_movie_id) '
-                       'values (%s, %s, %s, %s, %s)',
+                       'last_movie_id, current_page, total_pages) '
+                       'values (%s, %s, %s, %s, %s, %s, %s)',
                        [config.year, self.get_current_count(), self.total_count,
-                        self.args.hostname, last_movie_id])
+                        self.args.hostname, last_movie_id, self.current_page,
+                        self.total_pages])
         else:
             db.execute('update mdb.stat set done_count = %s, total_count = %s, hostname = %s, '
-                       'last_update_time = current_timestamp, last_movie_id = %s '
+                       'last_update_time = current_timestamp, last_movie_id = %s, '
+                       'current_page = %s, total_pages = %s '
                        'where year = %s',
                        [self.get_current_count(), self.total_count, self.args.hostname,
-                        last_movie_id, config.year])
+                        last_movie_id, self.current_page, self.total_pages,
+                        config.year])
 
     def update_total(self):
         id = db.query_value('select id from mdb.stat where year = %s', [config.year])
         if id is None:
             db.execute('insert into mdb.stat (year, done_count, total_count, hostname, '
-                       'last_movie_id) '
-                       'values (%s, %s, %s, %s, %s)',
-                       [config.year, 0, self.total_count, None, None])
+                       'last_movie_id, total_pages) '
+                       'values (%s, %s, %s, %s, %s, %s)',
+                       [config.year, 0, self.total_count, None, None, self.total_pages])
 
     def log_error(self, movie_id, message):
         logger.error('Could not parse movie %s: "%s"' % (movie_id, message,))
@@ -142,9 +149,12 @@ class App():
 
     def get_year(self, year, update_mode=False):
         logger.info('======= Processing year %s =======' % year)
-        for page_number in range(1, self.get_pages_count(year, force_download=update_mode) + 1):
+        for page_number in range(self.args.start_page,
+                                 self.get_pages_count(year, force_download=update_mode) + 1):
+            self.current_page = page_number
             logger.info("Processing page %s" % page_number)
-            for id, title, href in self.get_films_from_page(self.get_url_for_year(year, page_number),
+            for id, title, href in self.get_films_from_page(self.get_url_for_year(year,
+                                                                                  page_number),
                                                             force_download=update_mode):
                 if update_mode and self.is_film_exists(id) is True:
                     continue
@@ -162,6 +172,9 @@ class App():
                 logger.warning('%s from %s' % (self.get_current_count(), self.total_count,))
                 if self.args.read_only is False:
                     self.update_stat(id)
+        # После получения всех страниц года нужно сбросить счётчик страниц,
+        # чтобы новый год начинать извлекать всегда с первой страницы
+        self.args.start_page = 1
 
     def run(self):
         if self.args.total is True:

@@ -22,7 +22,7 @@ create table mdb.movie
     title           text not null,
     alternative_title text,
     countries       integer[],
-    year            integer not null,
+    year            integer,
     slogan          text,
     directors       integer[],
     scenario        integer[],
@@ -155,7 +155,9 @@ create table mdb.stat
     done_count      integer not null default 0 check (done_count >= 0),
     total_count     integer not null check (total_count >= 0),
     last_update_time timestamptz(0) not null default now(),
-    last_movie_id   integer
+    last_movie_id   integer,
+    current_page    integer,
+    total_pages     integer
 );
 
 grant select, update, insert on mdb.stat to mdb;
