@@ -11,6 +11,7 @@ from lxml.html import fromstring
 
 import config
 from mdb.film import Film
+from mdb.person import Person
 from mdb.db import Database
 from mdb.http import Downloader
 
@@ -41,6 +42,7 @@ class App():
         parser.add_argument('--cache-path', required=False, default='.', type=str)
         parser.add_argument('--update', required=False, default=False, action='store_true')
         parser.add_argument('--start-page', required=False, default=1, type=int)
+        parser.add_argument('--persons', required=False, default=False, action='store_true')
         self.args = parser.parse_args()
         config.cache_path = self.args.cache_path
         # Initialization of the cache
@@ -176,7 +178,15 @@ class App():
         # чтобы новый год начинать извлекать всегда с первой страницы
         self.args.start_page = 1
 
+    def update_persons(self):
+        for person in db.query_dict('select id from mdb.person order by id limit 1000'):
+            person = Person(person['id'])
+            person.save()
+
     def run(self):
+        if self.args.persons is True:
+            self.update_persons()
+            return
         if self.args.total is True:
             logger.warning('======= Updating total stat =======')
             for year in range(1890, 2017):

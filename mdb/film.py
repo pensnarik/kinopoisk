@@ -4,7 +4,7 @@ import re
 import logging
 
 from lxml.html import fromstring
-from mdb.helpers import unhtml
+from mdb.helpers import unhtml, get_date
 from mdb.db import Database
 from mdb.http import Downloader
 
@@ -94,7 +94,6 @@ class Film(object):
             self.year = int(m.group(1))
         else:
             return None
-
 
     def save_persons(self):
         for person in self.cast:
@@ -323,31 +322,10 @@ class Film(object):
     def get_age_restriction(self, elem):
         self.age_restriction = elem.text_content().strip()
 
-    def get_premiere_date(self, date_as_russian_text):
-        month_mapping_d = {u'января': 1, u'февраля': 2, u'марта': 3, u'апреля': 4, u'мая': 5,
-                           u'июня': 6, u'июля': 7, u'августа': 8, u'сентября': 9, u'октября': 10,
-                           u'ноября': 11, u'декабря': 12}
-        month_mapping_m = {u'январь': 1, u'февраль': 2, u'март': 3, u'апрель': 4, u'май': 5, u'июнь': 6,
-                           u'июль': 7, u'август': 8, u'сентябрь': 9, u'октябрь': 10, u'ноябрь': 11,
-                           u'декабрь': 12}
-        data = date_as_russian_text.split(' ')
-        if len(data) == 3:
-            # Bug with https://www.kinopoisk.ru/film/224679/dates/
-            if data[0] == '0':
-                data[0] = '1'
-            return {'precision': 'd',
-                    'date': '%s-%.02d-%.02d' % (data[2], month_mapping_d[data[1].lower()], int(data[0]))}
-        elif len(data) == 2:
-            return {'precision': 'm',
-                    'date': '%s-%.02d-01' % (data[1], month_mapping_m[data[0].lower()])}
-        elif len(data) == 1:
-            return {'precision': 'y',
-                    'date': '%s-01-01' % (data[0])}
-
     def get_premieres(self, elem):
         div = elem.xpath('.//div[@class="prem_ical"]')
         if div is not None and len(div) > 0:
-            date = self.get_premiere_date(div[0].get('data-ical-date').strip())
+            date = get_date(div[0].get('data-ical-date').strip())
             premiere = {'region': div[0].get('data-ical-type')}
             premiere.update(date)
             self.premieres.append(premiere)
@@ -372,7 +350,7 @@ class Film(object):
             td_small = td_date.getnext().xpath('.//small')
             td_count = td_date.getnext().getnext().xpath('.//small')
 
-            date = self.get_premiere_date(td_date[0].text_content().strip())
+            date = get_date(td_date[0].text_content().strip())
             country = td_country[0].text_content()
             country_id = self.extract_country_id_from_url(td_country[0].get('href'))
             small = td_small[0].text_content().strip()

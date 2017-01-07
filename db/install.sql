@@ -115,8 +115,18 @@ create table mdb.person
 (
     id              serial primary key,
     name            text not null,
-    alternative_name text
+    alternative_name text,
+    birth_date      date,
+    birth_place     varchar(200),
+    growth          integer,
+    death_date      date,
+    death_place     varchar(200)
 );
+
+create index on mdb.person (name varchar_pattern_ops);
+create index on mdb.person(birth_date);
+create index on mdb.person(growth);
+create index on mdb.person(death_date);
 
 create table mdb.person_in_movie
 (
