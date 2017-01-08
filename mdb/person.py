@@ -34,7 +34,9 @@ class Person(object):
     def parse(self, page):
         self.html = fromstring(page)
 
-        self.alternative_name = self.html.xpath('//span[@itemprop="alternateName"]')[0].text_content()
+        alternative_span = self.html.xpath('//span[@itemprop="alternateName"]')
+        if len(alternative_span) > 0:
+            self.alternative_name = alternative_span[0].text_content()
 
         for tr in self.html.xpath('//table[@class="info"]//tr'):
             td = tr.xpath('.//td[@class="type"]')[0]
@@ -49,8 +51,13 @@ class Person(object):
                 if m is not None:
                     self.growth = int(m.group(1)) * 100 + int(m.group(2))
             elif info_type == u'дата смерти':
+                logger.warning(info)
                 m = re.search('^(.+)•', info)
-                date = get_date(m.group(1).strip()).get('date')
+                if m is None:
+                    date = get_date(info.strip()).get('date')
+                else:
+                    date = get_date(m.group(1).strip()).get('date')
+                logger.warning('date = %s' % date)
                 self.death_date = date
             elif info_type == u'место смерти':
                 self.death_place = info
