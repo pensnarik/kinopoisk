@@ -179,7 +179,7 @@ class App():
         self.args.start_page = 1
 
     def update_persons(self):
-        for person in db.query_dict('select id from mdb.person order by id limit 1000'):
+        for person in db.query_dict('select id from mdb.person order by id'):
             person = Person(person['id'])
             person.save()
 
