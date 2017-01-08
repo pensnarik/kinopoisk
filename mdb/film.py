@@ -410,7 +410,10 @@ class Film(object):
                        [self.id, box['category'], box['item'], box['value'], box['currency']])
 
     def get_mpaa(self, elem):
-        self.rating_mpaa = elem.xpath('.//img')[0].get('alt').replace(u'рейтинг ', '')
+        try:
+            self.rating_mpaa = elem.xpath('.//img')[0].get('alt').replace(u'рейтинг ', '')
+        except IndexError:
+            pass
 
     def get_production_status(self):
         news = self.html.xpath('//img[@src="https://st.kp.yandex.net/images/status-production.gif"]')
