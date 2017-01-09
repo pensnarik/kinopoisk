@@ -20,6 +20,7 @@ class Film(object):
         self.buffer = buffer
         self.html = fromstring(buffer)
         self.id = id
+        self.alternative_title = None
         self.countries = list()
         self.countries_to_save = list()
         self.slogan = None
