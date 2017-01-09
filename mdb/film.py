@@ -45,7 +45,7 @@ class Film(object):
         h1 = self.html.xpath('//h1[@class="moviename-big"]')
         self.title = unhtml(h1[0].text_content())
         alternative = self.html.xpath('//span[@itemprop="alternativeHeadline"]')
-        if alternative is not None:
+        if len(alternative) > 0:
             self.alternative_title = alternative[0].text_content()
 
     def extract_country_id_from_url(self, url):
