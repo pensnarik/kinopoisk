@@ -369,9 +369,9 @@ class Film(object):
                                'commentary': small, 'viewers': count})
 
     def save_dates(self):
-        db.execute('delete from mdb.dates where movie_id = %s', [self.id])
+        db.execute('delete from mdb.movie_dates where movie_id = %s', [self.id])
         for date in self.dates:
-            db.execute('insert into mdb.dates (movie_id, country_id, premiere_date, '
+            db.execute('insert into mdb.movie_dates (movie_id, country_id, premiere_date, '
                        'premiere_precision, viewers, commentary) '
                        'values (%s, %s, %s, %s, %s, %s)',
                        [self.id, date['country_id'], date['date']['date'],

@@ -71,13 +71,6 @@ create table mdb.rating_history
 
 comment on table mdb.rating_history is 'Динамика изменения рейтинга фильма';
 
-create table mdb.country_views
-(
-    id              serial primary key,
-    country_id      integer not null references mdb.country(id),
-    movie_id        integer not null references mdb.movie(id),
-    views           integer not null check (views > 0)
-);
 
 create table mdb.premiere_date
 (
@@ -173,7 +166,7 @@ create table mdb.stat
 grant select, update, insert on mdb.stat to mdb;
 grant select, usage on sequence mdb.stat_id_seq to mdb;
 
-create table mdb.dates
+create table mdb.movie_dates
 (
     id              serial primary key,
     movie_id        integer not null references mdb.movie(id),
