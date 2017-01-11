@@ -52,7 +52,7 @@ class Person(object):
                     self.growth = int(m.group(1)) * 100 + int(m.group(2))
             elif info_type == u'дата смерти':
                 logger.warning(info)
-                m = re.search('^(.+)•', info)
+                m = re.search(u'^(.+)•', info, re.UNICODE)
                 if m is None:
                     date = get_date(info.strip()).get('date')
                 else:
