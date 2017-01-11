@@ -43,6 +43,8 @@ class App():
         parser.add_argument('--update', required=False, default=False, action='store_true')
         parser.add_argument('--start-page', required=False, default=1, type=int)
         parser.add_argument('--persons', required=False, default=False, action='store_true')
+        parser.add_argument('--from-id', required=False, default=1, type=int)
+        parser.add_argument('--to-id', required=False, default=None)
         self.args = parser.parse_args()
         config.cache_path = self.args.cache_path
         # Initialization of the cache
@@ -179,7 +181,10 @@ class App():
         self.args.start_page = 1
 
     def update_persons(self):
-        for person in db.query_dict('select id from mdb.person order by id'):
+        query = "select id from mdb.person " \
+                " where id between %s and coalesce(%s, 999999999) " \
+                " order by id"
+        for person in db.query_dict(query, [self.args.from_id, self.args.to_id]):
             person = Person(person['id'])
             person.save()
 
