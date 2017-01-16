@@ -31,6 +31,9 @@ def get_date(date_as_russian_text):
     month_mapping_m = {u'январь': 1, u'февраль': 2, u'март': 3, u'апрель': 4, u'май': 5, u'июнь': 6,
                        u'июль': 7, u'август': 8, u'сентябрь': 9, u'октябрь': 10, u'ноябрь': 11,
                        u'декабрь': 12}
+    if u'до н.э.' in date_as_russian_text:
+        return {'precision': 'y',
+                'date': '%s-01-01 BC' % date_as_russian_text.replace(u' до н.э.', '')}
     data = date_as_russian_text.replace(',', '').split()
     if len(data) == 3:
         # Bug with https://www.kinopoisk.ru/film/224679/dates/
