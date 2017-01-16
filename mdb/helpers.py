@@ -32,18 +32,22 @@ def get_date(date_as_russian_text):
                        u'июль': 7, u'август': 8, u'сентябрь': 9, u'октябрь': 10, u'ноябрь': 11,
                        u'декабрь': 12}
     if u'до н.э.' in date_as_russian_text:
-        return {'precision': 'y',
-                'date': '%s-01-01 BC' % date_as_russian_text.replace(u' до н.э.', '')}
-    data = date_as_russian_text.replace(',', '').split()
+        era = 'BC'
+    else:
+        era = 'AD'
+
+    data = date_as_russian_text.replace(u' до н.э.', '').replace(u',', '').split()
+
     if len(data) == 3:
         # Bug with https://www.kinopoisk.ru/film/224679/dates/
         if data[0] == '0':
             data[0] = '1'
         return {'precision': 'd',
-                'date': '%s-%.02d-%.02d' % (data[2], month_mapping_d[data[1].lower()], int(data[0]))}
+                'date': '%s-%.02d-%.02d %s' % (data[2], month_mapping_d[data[1].lower()],
+                                               int(data[0]), era)}
     elif len(data) == 2:
         return {'precision': 'm',
-                'date': '%s-%.02d-01' % (data[1], month_mapping_m[data[0].lower()])}
+                'date': '%s-%.02d-01 %s' % (data[1], month_mapping_m[data[0].lower()], era)}
     elif len(data) == 1:
         return {'precision': 'y',
-                'date': '%s-01-01' % (data[0])}
+                'date': '%s-01-01 %s' % (data[0], era)}
