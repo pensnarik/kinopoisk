@@ -44,7 +44,7 @@ class Person(object):
             info = td.getnext().text_content()
             if info_type == u'дата рождения':
                 self.birth_date = tr.xpath('.//td[@class="birth"]')[0].get("birthdate")
-                if self.birth_date.startswith('-'):
+                if self.birth_date is not None and self.birth_date.startswith('-'):
                     self.birth_date = ('%s BC' % self.birth_date[1:])
                 logger.warning('Birth date = %s' % self.birth_date)
             elif info_type == u'место рождения':
