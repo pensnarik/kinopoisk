@@ -113,7 +113,9 @@ create table mdb.person
     birth_place     varchar(200),
     growth          integer,
     death_date      date,
-    death_place     varchar(200)
+    death_place     varchar(200),
+    inserted_at     timestamptz(0) not null defatult now(),
+    updated_at      timestamptz(0)
 );
 
 create index on mdb.person (name varchar_pattern_ops);

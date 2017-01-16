@@ -72,7 +72,8 @@ class Person(object):
         if self.is_exists() is True:
             db.execute('update mdb.person set alternative_name = %s, '
                        'birth_date = %s, birth_place = %s, growth = %s, '
-                       'death_date = %s, death_place = %s '
+                       'death_date = %s, death_place = %s ,'
+                       'updated_at = now() '
                        'where id = %s', [self.alternative_name, self.birth_date,
                                          self.birth_place, self.growth,
                                          self.death_date, self.death_place, self.id])
