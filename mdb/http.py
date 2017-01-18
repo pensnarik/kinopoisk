@@ -139,28 +139,9 @@ class Downloader():
         return os.path.join(path, key)
 
     @staticmethod
-    def get_cached_filename_compat(url, salt):
-        """
-        Возвращает имя файла в кеше для старых версий приложения, функция
-        для обеспечения совместимости и возможности перемещения файла
-        кеша в новое место
-        """
-        key = Downloader.get_cache_file_hash(url, salt)
-
-        return os.path.join(Downloader.get_cache_path(), key)
-
-    @staticmethod
     def is_url_in_cache(url, salt):
-        if config.year is not None and \
-           os.path.exists(Downloader.get_cached_filename_compat(url, salt)):
-
-            logger.warning('Cache file %s will be moved to %s' %
-                           (Downloader.get_cache_file_hash(url, salt),
-                            Downloader.get_cached_filename(url, salt)))
-            shutil.move(Downloader.get_cached_filename_compat(url, salt),
-                        Downloader.get_cached_filename(url, salt))
-            return True
-        return os.path.exists(Downloader.get_cached_filename(url, salt))
+        filename = Downloader.get_cached_filename(url, salt)
+        return os.path.exists(filename) and os.path.getsize(filename) > 0
 
     @staticmethod
     def init_cache():
