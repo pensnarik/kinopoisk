@@ -144,6 +144,9 @@ class App():
                        [config.year, 0, self.total_count, None, None, self.total_pages])
 
     def log_error(self, movie_id, message):
+        """
+        TODO: movie_id -> object_id
+        """
         logger.error('Could not parse movie %s: "%s"' % (movie_id, message,))
         db.execute('insert into mdb.error(hostname, movie_id, message) '
                    'values (%s, %s, %s)', [self.args.hostname, movie_id, message])
@@ -185,8 +188,12 @@ class App():
                 " where id between %s and coalesce(%s, 999999999) " \
                 " order by id"
         for person in db.query_dict(query, [self.args.from_id, self.args.to_id]):
-            person = Person(person['id'])
-            person.save()
+            try:
+                person = Person(person['id'])
+                person.save()
+            except Exception as e:
+                logger.error('Could not process person %s' % person['id'])
+                self.log_error(person['id'], 'Could not process person: %s' % str(e))
 
     def run(self):
         if self.args.persons is True:
