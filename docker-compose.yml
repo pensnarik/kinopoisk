@@ -1,0 +1,18 @@
+version: '2'
+
+networks:
+  mdb:
+
+services:
+  database:
+    image: mdb
+    environment:
+      PG_LOG_MIN_MESSAGES: 'info'
+      PG_LOG_MIN_DURATION_STATEMENT: '0'
+      PG_WORK_MEM: 128M
+    cpuset: 0,1
+    mem_limit: 512M
+    networks:
+      - mdb
+    ports:
+      - '20000:5432'

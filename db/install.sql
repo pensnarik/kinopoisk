@@ -1,10 +1,18 @@
-begin;
+\set ON_ERROR_STOP 1
+
+drop user if exists web;
+
+create database :database;
+create user web with password 'mdb';
+create user mdb with password 'mdb';
+
+\connect :database
+
+create extension plpythonu;
 
 create schema mdb;
 
-create user mdb;
-
-grant usage on schema to mdb;
+grant usage on schema mdb to mdb;
 
 create type date_precision as enum ('d', 'm', 'y');
 
@@ -38,11 +46,13 @@ create table mdb.movie
     rating_kinopoisk numeric,
     rating_critics  numeric,
     world_premiere  date,
-    parse_date      timestamptz(0) not null default now(),
+    parse_date      timestamptz(0) default now(),
     update_date     timestamptz(0),
     rating_mpaa     varchar(10),
     production_status varchar(100)
 );
+
+grant select, insert, update, delete on mdb.movie to mdb;
 
 create table mdb.movie_boxes
 (
@@ -114,7 +124,7 @@ create table mdb.person
     growth          integer,
     death_date      date,
     death_place     varchar(200),
-    inserted_at     timestamptz(0) not null defatult now(),
+    inserted_at     timestamptz(0) not null default now(),
     updated_at      timestamptz(0)
 );
 
@@ -179,10 +189,10 @@ create table mdb.movie_dates
     commentary      text
 );
 
-create index on mdb.dates (movie_id);
+create index on mdb.movie_dates (movie_id);
 
-grant select, insert, update, delete on mdb.dates to mdb;
-grant select, usage on sequence mdb.dates_id_seq to mdb;
+grant select, insert, update, delete on mdb.movie_dates to mdb;
+grant select, usage on sequence mdb.movie_dates_id_seq to mdb;
 
 create table mdb.error
 (
@@ -196,4 +206,12 @@ create table mdb.error
 grant select, usage on sequence mdb.error_id_seq to mdb;
 grant select, insert on mdb.error to mdb;
 
-end;
+\copy mdb.country from data/mdb.country.sql
+\copy mdb.genre from data/mdb.genre.sql
+\copy mdb.movie from data/mdb.movie.sql
+\copy mdb.person from data/mdb.person.sql
+\copy mdb.person_in_movie from data/mdb.person_in_movie.sql
+\copy mdb.movie_boxes from data/mdb/movie_boxes.sql
+\copy mdb.movie_dates from data/mdb/movie_dates.sql
+\copy mdb.movie_rating from data/mdb/movie_rating.sql
+\copy mdb.premiere_date from data/mdb/premiere_date.sql
