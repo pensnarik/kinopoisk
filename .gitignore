@@ -1,3 +1,4 @@
 *.pyc
 cache/*
 config.py
+db/data/
