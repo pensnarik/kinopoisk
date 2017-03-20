@@ -211,7 +211,7 @@ grant select, insert on mdb.error to mdb;
 \copy mdb.movie from data/mdb.movie.sql
 \copy mdb.person from data/mdb.person.sql
 \copy mdb.person_in_movie from data/mdb.person_in_movie.sql
-\copy mdb.movie_boxes from data/mdb/movie_boxes.sql
-\copy mdb.movie_dates from data/mdb/movie_dates.sql
-\copy mdb.movie_rating from data/mdb/movie_rating.sql
-\copy mdb.premiere_date from data/mdb/premiere_date.sql
+\copy mdb.movie_boxes from data/mdb.movie_boxes.sql
+\copy mdb.movie_dates from data/mdb.movie_dates.sql
+\copy mdb.movie_rating from data/mdb.movie_rating.sql
+\copy mdb.premiere_date from data/mdb.premiere_date.sql
