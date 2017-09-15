@@ -344,6 +344,9 @@ class Film(object):
 
     def get_dates(self):
         page = Downloader.get('https://www.kinopoisk.ru/film/%s/dates/' % self.id)
+        if page is None:
+            logger.warning('There is no information about dates')
+            return
         html = fromstring(page)
         for div in html.xpath('//table//tr//div[contains(@class, "flag")]'):
             td_date = div.getparent().getnext()
