@@ -170,7 +170,8 @@ create table mdb.stat
     last_update_time timestamptz(0) not null default now(),
     last_movie_id   integer,
     current_page    integer,
-    total_pages     integer
+    total_pages     integer,
+    hostname        text
 );
 
 grant select, update, insert on mdb.stat to mdb;
