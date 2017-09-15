@@ -8,8 +8,6 @@ create user mdb with password 'mdb';
 
 \connect :database
 
-create extension plpythonu;
-
 create schema mdb;
 
 grant usage on schema mdb to mdb;
