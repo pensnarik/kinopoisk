@@ -11,6 +11,7 @@ from requests.exceptions import ConnectionError, ReadTimeout
 import codecs
 import __main__
 from random import randint
+from lxml.html import fromstring
 
 import mdb.helpers
 import config
@@ -53,6 +54,7 @@ class Downloader():
                         raise Exception('Unknown method: %s' % method)
 
                     if 'captchaimg' in response.text:
+                        response = Downloader.get_page_with_captcha(response.text, url, headers=headers)
                         raise GetPageError('Banned')
                     break
                 except (ConnectionError, OSError, GetPageError, ReadTimeout):
@@ -67,6 +69,12 @@ class Downloader():
                 return response.text
             else:
                 return None
+
+    @staticmethod
+    def get_page_with_captcha(page_text, url, headers=None):
+        html = fromstring(page_text)
+        img = html.xpath('//img[@class="image form__captcha"]')
+        captcha_url = img.get('src')
 
     @staticmethod
     def get_from_cache(url, salt):
