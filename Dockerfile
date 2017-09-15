@@ -22,5 +22,5 @@ RUN wget --quiet http://parselab.ru/kinopoisk/data/mdb.person.sql.bz2 \
  && wget --quiet http://parselab.ru/kinopoisk/data/mdb.movie_rating.sql \
  && wget --quiet http://parselab.ru/kinopoisk/data/mdb.movie.sql.bz2 \
  && wget --quiet http://parselab.ru/kinopoisk/data/mdb.premiere_date.sql
-RUN chown -R postgres:postgres /db
+
 WORKDIR /db
