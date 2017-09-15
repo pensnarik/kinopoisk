@@ -12,8 +12,10 @@ import codecs
 import __main__
 from random import randint
 from lxml.html import fromstring
+import base64
 
 import mdb.helpers
+from mdb.captcha import CaptchaSolver
 import config
 
 logger = logging.getLogger(__name__)
@@ -53,9 +55,12 @@ class Downloader():
                     else:
                         raise Exception('Unknown method: %s' % method)
 
-                    if 'captchaimg' in response.text:
-                        response = Downloader.get_page_with_captcha(response.text, url, headers=headers)
-                        raise GetPageError('Banned')
+                    while 'captchaimg' in response.text:
+                        logger.info('URL: %s', response.url)
+                        response = Downloader.get_page_with_captcha(response.text, url)
+                        tries_left = tries_left - 1
+                        if tries_left == 0:
+                            break
                     break
                 except (ConnectionError, OSError, GetPageError, ReadTimeout):
                     tries_left = tries_left - 1
@@ -66,6 +71,7 @@ class Downloader():
 
             if response.status_code == 200 and response is not None:
                 Downloader.write_to_cache(url, salt, response.text)
+                logger.info('%s bytes has been written to cache' % len(response.content))
                 return response.text
             else:
                 return None
@@ -73,8 +79,43 @@ class Downloader():
     @staticmethod
     def get_page_with_captcha(page_text, url, headers=None):
         html = fromstring(page_text)
+        # Get captcha image URL
         img = html.xpath('//img[@class="image form__captcha"]')
-        captcha_url = img.get('src')
+        captcha_url = img[0].get('src')
+        # Get captcha key
+        input_captcha_key = html.xpath('//input[@class="form__key"]')
+        captcha_key = input_captcha_key[0].get('value')
+        # Get return path
+        input_retpath = html.xpath('//input[@class="form__retpath"]')
+        retpath = input_retpath[0].get('value')
+
+        logger.info('Captcha URL = %s, key = %s' % (captcha_url, captcha_key))
+
+        r = requests.get(captcha_url, stream=True)
+        if r.status_code != 200:
+            raise Exception('Could not download captcha image')
+        captcha_filename = Downloader.get_cached_filename(captcha_url, '')
+        with open(captcha_filename, 'wb') as f:
+            r.raw.decode_content = True
+            shutil.copyfileobj(r.raw, f)
+
+        solver = CaptchaSolver(captcha_filename)
+        task_id = solver.CreateTask()
+        time.sleep(10)
+        solution = solver.GetTaskResult(task_id)
+        if solution is None:
+            raise GetPageError('Could not solve captcha')
+
+
+        params = {'key': captcha_key, 'retpath': retpath, 'rep': solution}
+        r = requests.get('https://www.kinopoisk.ru/checkcaptcha', params=params)
+        # /checkcaptcha example:
+        # https://www.kinopoisk.ru/checkcaptcha?key=<key>&retpath=<retpath>&rep=%D0%BB%D1%8E%D0%BD%D0%B3%D1%81%D1%82%D0%B0%D0%B4
+        if r.status_code == 200:
+            logger.info('CAPTCHA SOLVED!!!')
+
+        logger.warning(r.url)
+        return r
 
     @staticmethod
     def get_from_cache(url, salt):
