@@ -23,4 +23,7 @@ RUN wget --quiet http://parselab.ru/kinopoisk/data/mdb.person.sql.bz2 \
  && wget --quiet http://parselab.ru/kinopoisk/data/mdb.movie.sql.bz2 \
  && wget --quiet http://parselab.ru/kinopoisk/data/mdb.premiere_date.sql
 
+RUN find . -type f -name "*.bz2" -exec bunzip2 -f {} \;
+RUN ls -al /db/data
+
 WORKDIR /db

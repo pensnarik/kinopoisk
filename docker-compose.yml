@@ -10,7 +10,6 @@ services:
       PG_LOG_MIN_MESSAGES: 'info'
       PG_LOG_MIN_DURATION_STATEMENT: '0'
       PG_WORK_MEM: 128MB
-      PG_LOG_CHECKPOINTS: 'on'
     cpuset: 0,1
     mem_limit: 512M
     networks:
