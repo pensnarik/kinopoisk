@@ -18,7 +18,6 @@ RUN wget --quiet http://parselab.ru/kinopoisk/data/mdb.person.sql.bz2 \
  && wget --quiet http://parselab.ru/kinopoisk/data/mdb.movie_dates.sql.bz2 \
  && wget --quiet http://parselab.ru/kinopoisk/data/mdb.country.sql \
  && wget --quiet http://parselab.ru/kinopoisk/data/mdb.genre.sql \
- && wget --quiet http://parselab.ru/kinopoisk/data/mdb.person.sql.bz2 \
  && wget --quiet http://parselab.ru/kinopoisk/data/mdb.movie_rating.sql \
  && wget --quiet http://parselab.ru/kinopoisk/data/mdb.movie.sql.bz2 \
  && wget --quiet http://parselab.ru/kinopoisk/data/mdb.premiere_date.sql
