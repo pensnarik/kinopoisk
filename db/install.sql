@@ -1,10 +1,9 @@
 \set ON_ERROR_STOP 1
 
-drop user if exists web;
 drop user if exists mdb;
 
 create database :database;
-create user web with password 'mdb';
+
 create user mdb with password 'mdb';
 
 \connect :database
