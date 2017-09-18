@@ -1,6 +1,7 @@
 \set ON_ERROR_STOP 1
 
 drop user if exists web;
+drop user if exists mdb;
 
 create database :database;
 create user web with password 'mdb';
@@ -24,7 +25,7 @@ grant select, insert on table mdb.country to mdb;
 
 create table mdb.movie
 (
-    id              serial primary key,
+    id              serial,
     title           text not null,
     alternative_title text,
     countries       integer[],
@@ -55,7 +56,7 @@ grant select, insert, update, delete on mdb.movie to mdb;
 create table mdb.movie_boxes
 (
     id              serial primary key,
-    movie_id        integer not null references mdb.movie(id),
+    movie_id        integer,
     category        text not null,
     item            text not null,
     value           bigint,
@@ -72,7 +73,7 @@ create index on mdb.movie_boxes (movie_id);
 create table mdb.rating_history
 (
     id              serial primary key,
-    movie_id        integer not null references mdb.movie(id),
+    movie_id        integer not null,
     day             date not null,
     rating          numeric not null
 );
@@ -83,7 +84,7 @@ comment on table mdb.rating_history is 'Динамика изменения ре
 create table mdb.premiere_date
 (
     id              serial primary key,
-    movie_id        integer not null references mdb.movie(id),
+    movie_id        integer not null,
     region          varchar(100) not null,
     premiere_date   date,
     precision       date_precision not null default 'd',
@@ -106,7 +107,7 @@ grant insert, update, select on mdb.genre to mdb;
 create table mdb.movie_keyword
 (
     id              serial primary key,
-    movie_id        integer not null references mdb.movie(id),
+    movie_id        integer not null,
     keyword         text not null
 );
 
@@ -114,7 +115,7 @@ create unique index on mdb.movie_keyword (movie_id, keyword);
 
 create table mdb.person
 (
-    id              serial primary key,
+    id              serial,
     name            text not null,
     alternative_name text,
     birth_date      date,
@@ -133,15 +134,12 @@ create index on mdb.person(death_date);
 
 create table mdb.person_in_movie
 (
-    id              serial primary key,
-    movie_id        integer not null references mdb.movie(id),
-    person_id       integer not null references mdb.person(id),
+    id              serial,
+    movie_id        integer,
+    person_id       integer,
     role            text not null,
     commentary      text
 );
-
-create index on mdb.person_in_movie(movie_id);
-create index on mdb.person_in_movie(person_id);
 
 grant select, update, delete, insert on table mdb.person, mdb.person_in_movie to mdb;
 
@@ -150,7 +148,7 @@ grant select, usage on sequence mdb.person_in_movie_id_seq to mdb;
 create table mdb.movie_rating
 (
     id              serial primary key,
-    movie_id        integer not null references mdb.movie(id),
+    movie_id        integer not null,
     rating_system   varchar(100) not null,
     rating          numeric not null,
     vote_count      integer
@@ -180,7 +178,7 @@ grant select, usage on sequence mdb.stat_id_seq to mdb;
 create table mdb.movie_dates
 (
     id              serial primary key,
-    movie_id        integer not null references mdb.movie(id),
+    movie_id        integer not null,
     country_id      integer not null references mdb.country(id),
     premiere_date   date,
     premiere_precision char(1),
@@ -205,12 +203,37 @@ create table mdb.error
 grant select, usage on sequence mdb.error_id_seq to mdb;
 grant select, insert on mdb.error to mdb;
 
+/* Некоторые constraint'ы и индексы лучше создавать после загрузки данных */
+
 \copy mdb.country from data/mdb.country.sql
 \copy mdb.genre from data/mdb.genre.sql
 \copy mdb.movie from data/mdb.movie.sql
+
+alter table mdb.movie add constraint movie_pkey primary key (id);
+
 \copy mdb.person from data/mdb.person.sql
+
+alter table mdb.person add constraint person_pkey primary key (id);
+
 \copy mdb.person_in_movie from data/mdb.person_in_movie.sql
+
+alter table mdb.person_in_movie add constraint person_in_movie_pkey primary key (id);
+alter table mdb.person_in_movie add constraint person_in_movie_movie_id_fkey foreign key (movie_id) references mdb.movie(id);
+alter table mdb.person_in_movie add constraint person_in_movie_person_id_fkey foreign key (person_id) references mdb.person(id);
+create index on mdb.person_in_movie(movie_id);
+create index on mdb.person_in_movie(person_id);
+
 \copy mdb.movie_boxes from data/mdb.movie_boxes.sql
+
+alter table mdb.movie_boxes add constraint movie_boxes_movie_id_fkey foreign key (movie_id) references mdb.movie(id);
+
 \copy mdb.movie_dates from data/mdb.movie_dates.sql
 \copy mdb.movie_rating from data/mdb.movie_rating.sql
 \copy mdb.premiere_date from data/mdb.premiere_date.sql
+
+alter table mdb.rating_history add constraint rating_history_movie_id foreign key (movie_id) references mdb.movie(id);
+alter table mdb.premiere_date add constraint premiere_date_movie_id foreign key (movie_id) references mdb.movie(id);
+
+alter table mdb.movie_keyword add constraint movie_keyword_movie_id foreign key (movie_id) references mdb.movie(id);
+alter table mdb.movie_rating add constraint movie_rating_movie_id foreign key (movie_id) references mdb.movie(id);
+alter table mdb.movie_dates add constraint movie_dates_movie_id foreign key (movie_id) references mdb.movie(id);
