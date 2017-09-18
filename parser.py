@@ -176,7 +176,6 @@ class App():
                         f.save()
                 except Exception as e:
                     self.log_error(id, str(e))
-                    raise
                 logger.warning('%s from %s' % (self.get_current_count(), self.total_count,))
                 if self.args.read_only is False:
                     self.update_stat(id)
