@@ -11,7 +11,7 @@ class CaptchaSolver():
 
     def __init__(self, filename):
         with open(filename, 'rb') as f:
-            self.data = base64.b64encode(f.read())
+            self.data = base64.b64encode(f.read()).decode('utf-8')
 
     def CreateTask(self):
         data = {'clientKey': config.anticaptcha['key'], 'languagePool': 'rn',
