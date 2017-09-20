@@ -41,7 +41,7 @@ class Film(object):
         self.rating_mpaa = None
         self.production_status = None
         self.full_id = self.get_full_id()
-        logger.warning('Full ID = %s' % self.full_id)
+        logger.info('Full ID = %s' % self.full_id)
         self.parse()
 
     def get_full_id(self):
@@ -52,7 +52,6 @@ class Film(object):
         a = self.html.xpath('//div[@class="subscribe"]/div[@class="link"]/a')
         if len(a) == 0:
             raise Exception('Could not get full ID')
-        logger.warning(a[0].get('href'))
         m = re.search('^/film/([^/]+)/subscribe/$', a[0].get('href'))
         return m.group(1)
 
@@ -176,7 +175,6 @@ class Film(object):
             div = div.getnext()
 
         while div is not None:
-            #logger.warning(div.text_content())
             if div is None or div.tag != 'div':
                 break
             if 'dub' not in div.get('class').split():
@@ -399,14 +397,13 @@ class Film(object):
         """
         Информация о кассовых сборах и бюджете
         """
-        logger.warning('Parsing boxes')
+        logger.info('Parsing boxes')
         page = Downloader.get('https://www.kinopoisk.ru/film/%s/box/' % self.full_id)
         if page is None:
             return
         html = fromstring(page)
         for div in html.xpath('//div[@style="width: 274px"]//table'):
             group = div.xpath('.//tr//td')[0].text_content()
-            logger.warning(group)
             for b in div.xpath('.//td[@colspan="2"]//b'):
                 title = b.text_content().replace(':', '')
                 if title == group:
@@ -418,7 +415,7 @@ class Film(object):
                 else:
                     currency = None
                 value = re.sub('[^\d]', '', next_tr.text_content().strip(), re.UNICODE)
-                logger.warning('"%s" : "%s" (%s)' % (title, value, currency,))
+                logger.info('"%s" : "%s" (%s)' % (title, value, currency,))
                 if value != '':
                     self.boxes.append({'category': group, 'item': title, 'value': value,
                                        'currency': currency})
@@ -442,7 +439,6 @@ class Film(object):
             return
 
         self.production_status = news[0].getparent().getnext().getnext().text_content()
-        logger.warning('status = %s' % self.production_status)
 
     def save(self):
         self.save_persons()
