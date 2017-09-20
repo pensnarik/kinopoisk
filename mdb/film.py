@@ -401,6 +401,8 @@ class Film(object):
         """
         logger.warning('Parsing boxes')
         page = Downloader.get('https://www.kinopoisk.ru/film/%s/box/' % self.full_id)
+        if page is None:
+            return
         html = fromstring(page)
         for div in html.xpath('//div[@style="width: 274px"]//table'):
             group = div.xpath('.//tr//td')[0].text_content()
