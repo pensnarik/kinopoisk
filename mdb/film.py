@@ -40,7 +40,20 @@ class Film(object):
         self.boxes = list()
         self.rating_mpaa = None
         self.production_status = None
+        self.full_id = self.get_full_id()
+        logger.warning('Full ID = %s' % self.full_id)
         self.parse()
+
+    def get_full_id(self):
+        """
+        Возвращает целый ID, в том виде, к котором его нужно подставлять в ссылки,
+        например "brand-time-commercial-2017-1027743"
+        """
+        meta = self.html.xpath('//meta[@property="og:url"]')
+        if len(meta) == 0:
+            raise Exception('Could not get full ID')
+        m = re.search('^https://www.kinopoisk.ru/film/([^/]+)/$', meta[0].get('content'))
+        return m.group(1)
 
     def parse_title(self):
         h1 = self.html.xpath('//h1[@class="moviename-big"]')
@@ -343,7 +356,7 @@ class Film(object):
                            [self.id, premiere['region'], premiere['date'], premiere['precision']])
 
     def get_dates(self):
-        page = Downloader.get('https://www.kinopoisk.ru/film/%s/dates/' % self.id)
+        page = Downloader.get('https://www.kinopoisk.ru/film/%s/dates/' % self.full_id)
         if page is None:
             logger.warning('There is no information about dates')
             return
@@ -370,6 +383,7 @@ class Film(object):
                 self.countries_to_save.append({'id': country_id, 'name': country})
             self.dates.append({'date': date, 'country_id': country_id,
                                'commentary': small, 'viewers': count})
+        logger.info(self.dates)
 
     def save_dates(self):
         db.execute('delete from mdb.movie_dates where movie_id = %s', [self.id])
@@ -385,7 +399,7 @@ class Film(object):
         Информация о кассовых сборах и бюджете
         """
         logger.warning('Parsing boxes')
-        page = Downloader.get('https://www.kinopoisk.ru/film/%s/box/' % self.id)
+        page = Downloader.get('https://www.kinopoisk.ru/film/%s/box/' % self.full_id)
         html = fromstring(page)
         for div in html.xpath('//div[@style="width: 274px"]//table'):
             group = div.xpath('.//tr//td')[0].text_content()
@@ -473,5 +487,4 @@ class Film(object):
         self.get_ratings()
         self.get_dates()
         self.get_production_status()
-        if '/film/%s/box/' % self.id in self.buffer:
-            self.get_boxes()
+        self.get_boxes()
