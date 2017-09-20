@@ -49,10 +49,11 @@ class Film(object):
         Возвращает целый ID, в том виде, к котором его нужно подставлять в ссылки,
         например "brand-time-commercial-2017-1027743"
         """
-        meta = self.html.xpath('//meta[@property="og:url"]')
-        if len(meta) == 0:
+        a = self.html.xpath('//div[@class="subscribe"]/div[@class="link"]/a')
+        if len(a) == 0:
             raise Exception('Could not get full ID')
-        m = re.search('^https://www.kinopoisk.ru/film/([^/]+)/$', meta[0].get('content'))
+        logger.warning(a[0].get('href'))
+        m = re.search('^/film/([^/]+)/subscribe/$', a[0].get('href'))
         return m.group(1)
 
     def parse_title(self):
