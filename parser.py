@@ -6,6 +6,7 @@ import sys
 import logging
 import argparse
 from socket import gethostname
+from datetime import date
 
 from lxml.html import fromstring
 
@@ -208,7 +209,7 @@ class App():
             return
         if self.args.total is True:
             logger.warning('======= Updating total stat =======')
-            for year in range(1890, 2017):
+            for year in range(1890, date.today().year + 1):
                 logger.warning('Year %s' % year)
                 config.year = year
                 self.get_pages_count(year)
@@ -222,7 +223,7 @@ class App():
             f.save()
             sys.exit(0)
 
-        while config.year <= 2017:
+        while config.year <= date.today().year + 1:
             self.get_year(config.year, update_mode=self.args.update)
             self.set_year(config.year + 1)
 
