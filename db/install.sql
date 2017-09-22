@@ -237,6 +237,8 @@ alter table mdb.movie_keyword add constraint movie_keyword_movie_id foreign key 
 alter table mdb.movie_rating add constraint movie_rating_movie_id foreign key (movie_id) references mdb.movie(id);
 alter table mdb.movie_dates add constraint movie_dates_movie_id foreign key (movie_id) references mdb.movie(id);
 
+create index on mdb.person_in_movie (commentary varchar_pattern_ops);
+
 select setval('mdb.movie_rating_id_seq', (select max(id) from mdb.movie_rating));
 select setval('mdb.premiere_date_id_seq', (select max(id) from mdb.premiere_date));
 select setval('mdb.movie_dates_id_seq', (select max(id) from mdb.movie_dates));
