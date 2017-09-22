@@ -89,8 +89,16 @@ class App():
         return '%s/lists/ord/name/m_act[year]/%s/m_act[all]/ok/page/%s/' % (self.base, year, page,)
 
     def extract_id_from_url(self, url):
-        m = re.search('-(\d+)/$', url)
-        return int(m.group(1))
+        if re.match('^/film/(\d+)/$', url):
+            # Old URL format
+            # /film/1049041/
+            m = re.search('^/film/(\d+)/$', url)
+            return int(m.group(1))
+        else:
+            # New URL format
+            # /film/pyewacket-2017-1004054/
+            m = re.search('-(\d+)/$', url)
+            return int(m.group(1))
 
     def get_films_from_page(self, url, force_download=False):
         page = Downloader.get(url, force_download=force_download)
