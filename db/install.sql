@@ -22,6 +22,8 @@ create table mdb.country
 
 grant select, insert on table mdb.country to mdb;
 
+comment on table mdb.country is 'Страны';
+
 create table mdb.movie
 (
     id              serial,
@@ -51,6 +53,8 @@ create table mdb.movie
 );
 
 grant select, insert, update, delete on mdb.movie to mdb;
+
+comment on table mdb.movie is 'Фильмы';
 
 create table mdb.movie_boxes
 (
@@ -95,6 +99,8 @@ create unique index on mdb.premiere_date(movie_id, region);
 grant select, usage on sequence mdb.premiere_date_id_seq to mdb;
 grant select, insert, update on mdb.premiere_date to mdb;
 
+comment on table mdb.premiere_date is 'Даты премьер';
+
 create table mdb.genre
 (
     id              serial primary key,
@@ -102,6 +108,8 @@ create table mdb.genre
 );
 
 grant insert, update, select on mdb.genre to mdb;
+
+comment on table mdb.genre is 'Жанры';
 
 create table mdb.movie_keyword
 (
@@ -111,6 +119,8 @@ create table mdb.movie_keyword
 );
 
 create unique index on mdb.movie_keyword (movie_id, keyword);
+
+comment on table mdb.movie_keyword is 'Ключевые слова';
 
 create table mdb.person
 (
@@ -131,6 +141,8 @@ create index on mdb.person(birth_date);
 create index on mdb.person(growth);
 create index on mdb.person(death_date);
 
+comment on table mdb.person is 'Персоны';
+
 create table mdb.person_in_movie
 (
     id              serial,
@@ -141,8 +153,9 @@ create table mdb.person_in_movie
 );
 
 grant select, update, delete, insert on table mdb.person, mdb.person_in_movie to mdb;
-
 grant select, usage on sequence mdb.person_in_movie_id_seq to mdb;
+
+comment on table mdb.person_in_movie is 'Участие персон в фильмах';
 
 create table mdb.movie_rating
 (
@@ -157,6 +170,8 @@ grant insert, update, delete, select on mdb.movie_rating to mdb;
 grant select, usage on sequence mdb.movie_rating_id_seq to mdb;
 
 create unique index on mdb.movie_rating(movie_id, rating_system);
+
+comment on table mdb.movie_rating is 'Рейтинги фильмов';
 
 create table mdb.stat
 (
@@ -174,6 +189,8 @@ create table mdb.stat
 grant select, update, insert on mdb.stat to mdb;
 grant select, usage on sequence mdb.stat_id_seq to mdb;
 
+comment on tables mdb.stat is 'Статистика парсера';
+
 create table mdb.movie_dates
 (
     id              serial primary key,
@@ -190,6 +207,8 @@ create index on mdb.movie_dates (movie_id);
 grant select, insert, update, delete on mdb.movie_dates to mdb;
 grant select, usage on sequence mdb.movie_dates_id_seq to mdb;
 
+comment on table mdb.movie_dates is 'Даты (премьер, показов и т.д.)';
+
 create table mdb.error
 (
     id              serial primary key,
@@ -201,6 +220,8 @@ create table mdb.error
 
 grant select, usage on sequence mdb.error_id_seq to mdb;
 grant select, insert on mdb.error to mdb;
+
+comment on table mdb.error is 'Журнал ошибок';
 
 /* Некоторые constraint'ы и индексы лучше создавать после загрузки данных */
 
