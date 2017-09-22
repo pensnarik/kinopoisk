@@ -29,8 +29,7 @@ class App():
     total_pages = None
 
     def __init__(self):
-        parser = argparse.ArgumentParser(description='Generate SQL statemets to create '
-                                                     'attribute tables.')
+        parser = argparse.ArgumentParser(description='kinopoisk.ru parser')
         parser.add_argument('--year', type=int, help='Year to process')
         parser.add_argument('--hostname', type=str, help='Hostname', required=False,
                             default=gethostname())
