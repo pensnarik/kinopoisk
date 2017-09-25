@@ -133,15 +133,18 @@ create table mdb.person
     death_date      date,
     death_place     varchar(200),
     inserted_at     timestamptz(0) not null default now(),
-    updated_at      timestamptz(0)
+    updated_at      timestamptz(0),
+    parsed_extra    boolean not null default false
 );
 
 create index on mdb.person (name varchar_pattern_ops);
 create index on mdb.person(birth_date);
 create index on mdb.person(growth);
 create index on mdb.person(death_date);
+create index on mdb.person(parsed_extra);
 
 comment on table mdb.person is 'Персоны';
+comment on column mdb.person.parsed_extra is 'true, если информация о персоне получена с индивидуальной страницы';
 
 create table mdb.person_in_movie
 (

@@ -194,8 +194,10 @@ class App():
     def update_persons(self):
         query = "select id from mdb.person " \
                 " where id between %s and coalesce(%s, 999999999) " \
+                "   and parsed_extra = false " \
                 " order by id"
         for person in db.query_dict(query, [self.args.from_id, self.args.to_id]):
+            logger.info('Parsing person with ID = %s', person['id'])
             try:
                 person = Person(person['id'])
                 person.save()

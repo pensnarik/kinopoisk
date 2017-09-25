@@ -73,13 +73,13 @@ class Person(object):
             db.execute('update mdb.person set alternative_name = %s, '
                        'birth_date = %s, birth_place = %s, growth = %s, '
                        'death_date = %s, death_place = %s ,'
-                       'updated_at = now() '
+                       'updated_at = now(), parsed_extra = true '
                        'where id = %s', [self.alternative_name, self.birth_date,
                                          self.birth_place, self.growth,
                                          self.death_date, self.death_place, self.id])
         else:
             db.execute('insert into mdb.person(id, name, alternative_name, birth_date, birth_place, '
-                       'growth, death_date, death_place) '
-                       'values (%s, %s, %s, %s, %s, %s, %s, %s)',
+                       'growth, death_date, death_place, parsed_extra) '
+                       'values (%s, %s, %s, %s, %s, %s, %s, %s, %s)',
                        [self.id, self.name, self.alternative_name, self.birth_date,
-                        self.birth_place, self.growth, self.death_date, self.death_place])
+                        self.birth_place, self.growth, self.death_date, self.death_place, True])
