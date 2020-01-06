@@ -6,6 +6,7 @@ networks:
 services:
   database:
     image: mdb
+    build: .
     environment:
       PG_LOG_MIN_MESSAGES: 'info'
       PG_LOG_MIN_DURATION_STATEMENT: '0'

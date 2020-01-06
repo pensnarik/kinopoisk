@@ -2,11 +2,11 @@
 
 drop user if exists mdb;
 
-create database :database;
+create database mdb;
 
 create user mdb with password 'mdb';
 
-\connect :database
+\connect mdb
 
 create schema mdb;
 
@@ -39,7 +39,7 @@ create table mdb.movie
     producers       integer[],
     arts            integer[],
     editors         integer[],
-    genres          integer[],
+    genres          text[],
     length          integer,
     age_restriction text,
     rating_imdb     numeric,
@@ -103,7 +103,7 @@ comment on table mdb.premiere_date is 'Даты премьер';
 
 create table mdb.genre
 (
-    id              serial primary key,
+    id              text primary key,
     name            text not null unique
 );
 
@@ -192,7 +192,7 @@ create table mdb.stat
 grant select, update, insert on mdb.stat to mdb;
 grant select, usage on sequence mdb.stat_id_seq to mdb;
 
-comment on tables mdb.stat is 'Статистика парсера';
+comment on table mdb.stat is 'Статистика парсера';
 
 create table mdb.movie_dates
 (
@@ -228,17 +228,9 @@ comment on table mdb.error is 'Журнал ошибок';
 
 /* Некоторые constraint'ы и индексы лучше создавать после загрузки данных */
 
-\copy mdb.country from data/mdb.country.sql
-\copy mdb.genre from data/mdb.genre.sql
-\copy mdb.movie from data/mdb.movie.sql
-
 alter table mdb.movie add constraint movie_pkey primary key (id);
 
-\copy mdb.person from data/mdb.person.sql
-
 alter table mdb.person add constraint person_pkey primary key (id);
-
-\copy mdb.person_in_movie from data/mdb.person_in_movie.sql
 
 alter table mdb.person_in_movie add constraint person_in_movie_pkey primary key (id);
 alter table mdb.person_in_movie add constraint person_in_movie_movie_id_fkey foreign key (movie_id) references mdb.movie(id);
@@ -246,13 +238,7 @@ alter table mdb.person_in_movie add constraint person_in_movie_person_id_fkey fo
 create index on mdb.person_in_movie(movie_id);
 create index on mdb.person_in_movie(person_id);
 
-\copy mdb.movie_boxes from data/mdb.movie_boxes.sql
-
 alter table mdb.movie_boxes add constraint movie_boxes_movie_id_fkey foreign key (movie_id) references mdb.movie(id);
-
-\copy mdb.movie_dates from data/mdb.movie_dates.sql
-\copy mdb.movie_rating from data/mdb.movie_rating.sql
-\copy mdb.premiere_date from data/mdb.premiere_date.sql
 
 alter table mdb.rating_history add constraint rating_history_movie_id foreign key (movie_id) references mdb.movie(id);
 alter table mdb.premiere_date add constraint premiere_date_movie_id foreign key (movie_id) references mdb.movie(id);

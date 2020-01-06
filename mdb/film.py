@@ -1,12 +1,16 @@
 #! -*- encoding: utf-8 -*-
 
+import os
 import re
 import logging
 
 from lxml.html import fromstring
 from mdb.helpers import unhtml, get_date
 from mdb.db import Database
-from mdb.http import Downloader
+
+from parselab.cache import FileCache
+from parselab.network import NetworkManager
+from parselab.parsing import BasicParser
 
 db = Database.Instance()
 
@@ -14,7 +18,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class Film(object):
+class Film(BasicParser):
 
     def __init__(self, id, buffer):
         self.buffer = buffer
@@ -42,6 +46,10 @@ class Film(object):
         self.production_status = None
         self.full_id = self.get_full_id()
         logger.info('Full ID = %s' % self.full_id)
+
+        self.cache = FileCache(namespace='kinopoisk', path=os.environ.get('CACHE_PATH'))
+        self.net = NetworkManager()
+
         self.parse()
 
     def get_full_id(self):
@@ -63,7 +71,12 @@ class Film(object):
             self.alternative_title = alternative[0].text_content()
 
     def extract_country_id_from_url(self, url):
-        m = re.search('/(\d+)/$', url)
+        logger.info('URL = %s', url)
+        m = re.search('/country-(\d+)/', url)
+        if m is None:
+            m = re.search('/(\d+)/$', url)
+        if m is None:
+            raise Exception('Invalid URL format for country')
         return int(m.group(1))
 
     def extract_person_id_from_url(self, url):
@@ -142,7 +155,7 @@ class Film(object):
                        'values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, '
                        '%s, %s, %s, %s, %s, %s)',
                        [self.id, self.title, self.alternative_title, self.year,
-                        self.slogan, self.length, self.get_array_of_id(self.genres),
+                        self.slogan, self.length, [g['id'] for g in self.genres],
                         self.rating_kinopoisk, self.rating_imdb,
                         self.get_persons_by_role('director'), self.get_persons_by_role('writer'),
                         self.get_persons_by_role('operator'), self.get_persons_by_role('composer'),
@@ -160,7 +173,7 @@ class Film(object):
                        'production_status = %s '
                        'where id = %s',
                        [self.title, self.alternative_title, self.year, self.slogan,
-                        self.length, self.get_array_of_id(self.genres),
+                        self.length, [g['id'] for g in self.genres],
                         self.rating_kinopoisk, self.rating_imdb,
                         self.get_persons_by_role('director'), self.get_persons_by_role('writer'),
                         self.get_persons_by_role('operator'), self.get_persons_by_role('composer'),
@@ -206,7 +219,7 @@ class Film(object):
         """
         logger.info('Extracting people from cast page "%s"' % url)
 
-        page = Downloader.get(url)
+        page = self.get_page(url)
         html = fromstring(page)
         count = len(self.cast)
         start_list = 0
@@ -230,8 +243,8 @@ class Film(object):
             start_list = 10000
             logger.info('Trying to get more pages...')
             count = len(self.cast)
-            page = Downloader.get(url, method='POST', salt=str(start_list),
-                                  data={'start_list': start_list})
+            page = self.get_page(url, method='POST', salt=str(start_list),
+                                 data={'start_list': start_list})
             html = fromstring(page)
             self.extract_people_from_list(last_role,
                                           html.xpath('//div[contains(@class, "dub")]')[0],
@@ -239,7 +252,7 @@ class Film(object):
             people_extracted = len(self.cast) - count
 
     def get_cast(self):
-        page = Downloader.get('https://www.kinopoisk.ru/film/%s/cast/' % self.id)
+        page = self.get_page('https://www.kinopoisk.ru/film/%s/cast/' % self.id)
         html = fromstring(page)
 
         self.cast = list()
@@ -312,22 +325,23 @@ class Film(object):
                             rating['rating_system']])
 
     def extract_genre_id_from_url(self, url):
-        m = re.search('/(\d+)/$', url)
-        return int(m.group(1))
+        m = re.search('/navigator/([^\/]+)/', url)
+        return m.group(1)
 
     def get_genres(self, second_column):
         for a in second_column.xpath('.//a'):
-            if a.get('href').startswith(u'/lists/m_act'):
+            if a.get('href').startswith(u'/lists/navigator/'):
                 id = self.extract_genre_id_from_url(a.get('href'))
                 name = a.text_content()
                 self.genres.append({'id': id, 'name': name})
 
     def save_genres(self):
+        logger.info('Genres: %s', self.genres)
         for genre in self.genres:
             id = db.query_value('select id from mdb.genre where id = %s', [genre['id']])
             if id is None:
                 db.execute('insert into mdb.genre(id, name) values (%s, %s)',
-                           [genre['id'], genre['name']])
+                [genre['id'], genre['name']])
 
     def get_persons_by_role(self, role):
         return [int(i['id']) for i in self.cast if i['role'] == role]
@@ -355,7 +369,7 @@ class Film(object):
                            [self.id, premiere['region'], premiere['date'], premiere['precision']])
 
     def get_dates(self):
-        page = Downloader.get('https://www.kinopoisk.ru/film/%s/dates/' % self.full_id)
+        page = self.get_page('https://www.kinopoisk.ru/film/%s/dates/' % self.full_id)
         if page is None:
             logger.warning('There is no information about dates')
             return
@@ -398,7 +412,7 @@ class Film(object):
         Информация о кассовых сборах и бюджете
         """
         logger.info('Parsing boxes')
-        page = Downloader.get('https://www.kinopoisk.ru/film/%s/box/' % self.full_id)
+        page = self.get_page('https://www.kinopoisk.ru/film/%s/box/' % self.full_id)
         if page is None:
             return
         html = fromstring(page)

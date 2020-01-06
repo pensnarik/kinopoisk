@@ -6,8 +6,10 @@ import logging
 from lxml.html import fromstring
 
 from mdb.db import Database
-from mdb.http import Downloader
 from mdb.helpers import get_date
+
+from parselab.network import NetworkManager
+from parselab.parsing import BasicParser
 
 db = Database.Instance()
 
@@ -15,7 +17,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class Person(object):
+class Person(BasicParser):
 
     base = 'https://www.kinopoisk.ru'
 
@@ -28,7 +30,11 @@ class Person(object):
         self.death_date = None
         self.death_place = None
         self.growth = None
-        page = Downloader.get('%s/name/%s/' % (self.base, id))
+
+        self.cache = FileCache(namespace='kinopoisk', path=os.environ.get('CACHE_PATH'))
+        self.net = NetworkManager()
+
+        page = self.get_page('%s/name/%s/' % (self.base, id))
         self.parse(page)
 
     def parse(self, page):

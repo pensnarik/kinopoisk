@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
+import os
 import re
 import sys
+import time
 import logging
+import shutil
+import requests
 import argparse
 from socket import gethostname
 from datetime import date
@@ -14,7 +18,11 @@ import config
 from mdb.film import Film
 from mdb.person import Person
 from mdb.db import Database
-from mdb.http import Downloader
+from mdb.captcha import CaptchaSolver
+
+from parselab.cache import FileCache
+from parselab.network import NetworkManager, PageNotFound, InternalServerError
+from parselab.parsing import BasicParser, ParsingDatabase, PageDownloadException
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -22,7 +30,7 @@ logger.setLevel(logging.DEBUG)
 db = Database.Instance()
 
 
-class App():
+class App(BasicParser):
 
     base = 'https://www.kinopoisk.ru'
     total_count = None
@@ -39,24 +47,68 @@ class App():
                             default=20)
         parser.add_argument('--total', required=False, default=False, action='store_true')
         parser.add_argument('--read-only', required=False, default=False, action='store_true')
-        parser.add_argument('--cache-path', required=False, default='.', type=str)
         parser.add_argument('--update', required=False, default=False, action='store_true')
         parser.add_argument('--start-page', required=False, default=1, type=int)
         parser.add_argument('--persons', required=False, default=False, action='store_true')
         parser.add_argument('--from-id', required=False, default=1, type=int)
         parser.add_argument('--to-id', required=False, default=None)
         self.args = parser.parse_args()
-        config.cache_path = self.args.cache_path
-        # Initialization of the cache
-        Downloader.init_cache()
+
+        self.cache = FileCache(namespace='kinopoisk', path=os.environ.get('CACHE_PATH'))
+        self.net = NetworkManager()
         # Initialization of database connection
         db.connect(config.dsn)
-        config.sleep_time = self.args.sleep_time
+
         if self.args.year is not None:
             self.set_year(self.args.year)
 
     def set_year(self, year):
         config.year = year
+
+    def get_page_with_captcha(self, page_text):
+        html = fromstring(page_text)
+        # Get captcha image URL
+        img = html.xpath('//div[@class="captcha__image"]//img')
+        captcha_url = img[0].get('src')
+        # Get captcha key
+        input_captcha_key = html.xpath('//input[@class="form__key"]')
+        captcha_key = input_captcha_key[0].get('value')
+        # Get return path
+        input_retpath = html.xpath('//input[@class="form__retpath"]')
+        retpath = input_retpath[0].get('value')
+
+        logger.info('Captcha URL = %s, key = %s' % (captcha_url, captcha_key))
+
+        r = requests.get(captcha_url, stream=True)
+        if r.status_code != 200:
+            raise Exception('Could not download captcha image')
+        captcha_filename = self.cache.get_cached_filename(captcha_url)
+        with open(captcha_filename, 'wb') as f:
+            r.raw.decode_content = True
+            shutil.copyfileobj(r.raw, f)
+
+        solver = CaptchaSolver(captcha_filename)
+        task_id = solver.CreateTask()
+        time.sleep(10)
+        solution = solver.GetTaskResult(task_id)
+        if solution is None:
+            raise GetPageError('Could not solve captcha')
+
+
+        params = {'key': captcha_key, 'retpath': retpath, 'rep': solution}
+        r = requests.get('https://www.kinopoisk.ru/checkcaptcha', params=params)
+        # /checkcaptcha example:
+        # https://www.kinopoisk.ru/checkcaptcha?key=<key>&retpath=<retpath>&rep=%D0%BB%D1%8E%D0%BD%D0%B3%D1%81%D1%82%D0%B0%D0%B4
+        if r.status_code == 200:
+            logger.info('CAPTCHA SOLVED!!!')
+
+        return r
+
+    def is_captcha_required(self, data):
+       return 'captchaimg' in data
+
+    def solve_captcha(self, data):
+        self.get_page_with_captcha(data)
 
     def get_rating_history(self, film_id):
         """
@@ -66,18 +118,20 @@ class App():
 
     def get_pages_count(self, year, force_download=False):
         logger.info('Getting pages count for year %s' % year)
-        page = Downloader.get(self.get_url_for_year(year), force_download=force_download)
+        page = self.get_page(self.get_url_for_year(year))
         html = fromstring(page)
-        a = html.xpath('//ul[@class="list"]//li[@class="arr"][last()]//a')
+        a = html.xpath('//div[@class="paginator"]//a[@class="paginator__page-number"][last()]')
         if a is None or len(a) == 0:
             pages_count = 1
         else:
-            m = re.search('/page/(\d+)/', a[0].get('href'))
-            pages_count = int(m.group(1))
 
-        h1 = html.xpath('//h1[@class="level2"]//span[@style="color: #777"]')
-        if h1 is not None and len(h1) > 0:
-            self.total_count = int(re.sub('[^\d]', '', h1[0].text_content()))
+            pages_count = int(a[0].text_content())
+
+        logger.info('Pages count = %s', pages_count)
+
+        div = html.xpath('//div[@class="selections-seo-page__meta-info"]')
+        if div is not None and len(div) > 0:
+            self.total_count = int(re.sub('[^\d]', '', div[0].text_content()))
         else:
             raise Exception('Could not get total records count!')
 
@@ -86,7 +140,7 @@ class App():
         return pages_count
 
     def get_url_for_year(self, year, page=1):
-        return '%s/lists/ord/name/m_act[year]/%s/m_act[all]/ok/page/%s/' % (self.base, year, page,)
+        return '%s/lists/navigator/%s/?page=%s' % (self.base, year, page,)
 
     def extract_id_from_url(self, url):
         if re.match('^/film/(\d+)/$', url):
@@ -101,10 +155,11 @@ class App():
             return int(m.group(1))
 
     def get_films_from_page(self, url, force_download=False):
-        page = Downloader.get(url, force_download=force_download)
+        page = self.get_page(url)
         html = fromstring(page)
-        for item in html.xpath('//div[contains(@class, "item")]//div[@class="name"]//a'):
-            title = item.text_content()
+        for item in html.xpath('//div[contains(@class, "selections-film-item")]//a[@class="selection-film-item-meta__link"]'):
+            p = item.xpath('//p[@class="selection-film-item-meta__name"]')
+            title = p[0].text_content()
             href = item.get('href')
             id = self.extract_id_from_url(href)
             yield (id, title, href)
@@ -116,7 +171,7 @@ class App():
         """
         Extracts all informarion about film
         """
-        page = Downloader.get(self.get_film_url(film_id))
+        page = self.get_page(self.get_film_url(film_id))
         film = Film(film_id, page)
 
         logger.info('%s (%s) | %s' % (film.title, film.alternative_title, film.year,))
@@ -178,12 +233,12 @@ class App():
 
                 logger.info('%s | %s | %s' % (id, title, href,))
 
-                try:
-                    f = self.get_film(id)
-                    if self.args.read_only is False:
-                        f.save()
-                except Exception as e:
-                    self.log_error(id, str(e))
+                #try:
+                f = self.get_film(id)
+                if self.args.read_only is False:
+                    f.save()
+                #except Exception as e:
+                #    self.log_error(id, str(e))
                 logger.warning('%s from %s' % (self.get_current_count(), self.total_count,))
                 if self.args.read_only is False:
                     self.update_stat(id)
