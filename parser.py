@@ -105,7 +105,9 @@ class App(BasicParser):
         return r
 
     def is_captcha_required(self, data):
-       return 'captchaimg' in data
+        if 'captchaimg' in data:
+            raise Exception('Captcha')
+        return 'captchaimg' in data
 
     def solve_captcha(self, data):
         self.get_page_with_captcha(data)
@@ -158,7 +160,7 @@ class App(BasicParser):
         page = self.get_page(url)
         html = fromstring(page)
         for item in html.xpath('//div[contains(@class, "selections-film-item")]//a[@class="selection-film-item-meta__link"]'):
-            p = item.xpath('//p[@class="selection-film-item-meta__name"]')
+            p = item.xpath('.//p[@class="selection-film-item-meta__name"]')
             title = p[0].text_content()
             href = item.get('href')
             id = self.extract_id_from_url(href)

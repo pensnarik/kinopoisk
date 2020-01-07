@@ -71,7 +71,6 @@ class Film(BasicParser):
             self.alternative_title = alternative[0].text_content()
 
     def extract_country_id_from_url(self, url):
-        logger.info('URL = %s', url)
         m = re.search('/country-(\d+)/', url)
         if m is None:
             m = re.search('/(\d+)/$', url)
@@ -336,7 +335,6 @@ class Film(BasicParser):
                 self.genres.append({'id': id, 'name': name})
 
     def save_genres(self):
-        logger.info('Genres: %s', self.genres)
         for genre in self.genres:
             id = db.query_value('select id from mdb.genre where id = %s', [genre['id']])
             if id is None:
@@ -396,7 +394,6 @@ class Film(BasicParser):
                 self.countries_to_save.append({'id': country_id, 'name': country})
             self.dates.append({'date': date, 'country_id': country_id,
                                'commentary': small, 'viewers': count})
-        logger.info(self.dates)
 
     def save_dates(self):
         db.execute('delete from mdb.movie_dates where movie_id = %s', [self.id])
